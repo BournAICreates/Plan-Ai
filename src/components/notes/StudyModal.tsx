@@ -3,6 +3,7 @@ import { X, Sparkles, ChevronLeft, ChevronRight, RotateCcw, GraduationCap, Loade
 import styles from './Notes.module.css'; // Re-using notes styles for modal layout
 import dashboardStyles from '../dashboard/Dashboard.module.css'; // Using dashboard styles for flashcard specific classes we added
 import { useStudyStore } from '../../store/useStudyStore';
+import { ConfirmationModal } from '../ui/ConfirmationModal';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useAuth } from '../../contexts/AuthContext';
 import { generateContent } from '../../lib/gemini';
@@ -25,6 +26,7 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
     // Cram Session Local State
     const [cramSession, setCramSession] = useState<{
@@ -297,11 +299,7 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
 
                     {flashcards.length > 0 && !cramSession.active && (
                         <button
-                            onClick={async () => {
-                                if (confirm('Delete all flashcards for this note?')) {
-                                    if (user) await useStudyStore.getState().deleteFlashcards(user.uid, noteId);
-                                }
-                            }}
+                            onClick={() => setIsDeleteConfirmOpen(true)}
                             className={styles.closeBtn}
                             style={{ marginRight: '8px', color: 'var(--color-error)' }}
                             title="Delete Flashcard Set"
@@ -462,11 +460,7 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
 
                             {flashcards.length > 0 && (
                                 <button
-                                    onClick={async () => {
-                                        if (confirm('Are you sure you want to delete all flashcards for this note? This cannot be undone.')) {
-                                            if (user) await useStudyStore.getState().deleteFlashcards(user.uid, noteId);
-                                        }
-                                    }}
+                                    onClick={() => setIsDeleteConfirmOpen(true)}
                                     className={dashboardStyles.studyActionBtn}
                                     style={{
                                         marginTop: '1rem',
@@ -591,6 +585,18 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
                     )}
                 </div>
             </div>
+
+            <ConfirmationModal
+                isOpen={isDeleteConfirmOpen}
+                onClose={() => setIsDeleteConfirmOpen(false)}
+                onConfirm={async () => {
+                    if (user) await useStudyStore.getState().deleteFlashcards(user.uid, noteId);
+                }}
+                title="Delete Flashcards"
+                message="Are you sure you want to delete all flashcards for this note? This action cannot be undone."
+                confirmText="Delete"
+                isDangerous={true}
+            />
         </div>
     );
 }
