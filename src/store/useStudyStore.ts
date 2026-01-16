@@ -48,6 +48,9 @@ interface StudyState {
 
     // Tests Actions
     saveTest: (uid: string, noteId: string, questions: TestQuestion[], score: number) => Promise<void>;
+
+    // New delete action
+    deleteFlashcards: (uid: string, noteId: string) => Promise<void>;
 }
 
 export const useStudyStore = create<StudyState>((set, get) => ({
@@ -93,6 +96,19 @@ export const useStudyStore = create<StudyState>((set, get) => ({
         });
 
         await batch.commit();
+    },
+
+    deleteFlashcards: async (uid, noteId) => {
+        const batch = writeBatch(db);
+        const { flashcards } = get();
+
+        flashcards.forEach(card => {
+            const cardRef = doc(db, `users/${uid}/notes/${noteId}/flashcards/${card.id}`);
+            batch.delete(cardRef);
+        });
+
+        await batch.commit();
+        set({ flashcards: [] });
     },
 
     updateFlashcardStatus: async (uid, noteId, cardId, status) => {

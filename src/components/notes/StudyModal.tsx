@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Sparkles, ChevronLeft, ChevronRight, RotateCcw, GraduationCap, Loader2, Zap } from 'lucide-react';
+import { X, Sparkles, ChevronLeft, ChevronRight, RotateCcw, GraduationCap, Loader2, Zap, Trash2 } from 'lucide-react';
 import styles from './Notes.module.css'; // Re-using notes styles for modal layout
 import dashboardStyles from '../dashboard/Dashboard.module.css'; // Using dashboard styles for flashcard specific classes we added
 import { useStudyStore } from '../../store/useStudyStore';
@@ -295,6 +295,21 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
                         </div>
                     )}
 
+                    {flashcards.length > 0 && !cramSession.active && (
+                        <button
+                            onClick={async () => {
+                                if (confirm('Delete all flashcards for this note?')) {
+                                    if (user) await useStudyStore.getState().deleteFlashcards(user.uid, noteId);
+                                }
+                            }}
+                            className={styles.closeBtn}
+                            style={{ marginRight: '8px', color: 'var(--color-error)' }}
+                            title="Delete Flashcard Set"
+                        >
+                            <Trash2 size={20} />
+                        </button>
+                    )}
+
                     <button onClick={onClose} className={styles.closeBtn}>
                         <X size={20} />
                     </button>
@@ -442,6 +457,26 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
                                 >
                                     <Sparkles size={18} />
                                     Generate Flashcards
+                                </button>
+                            )}
+
+                            {flashcards.length > 0 && (
+                                <button
+                                    onClick={async () => {
+                                        if (confirm('Are you sure you want to delete all flashcards for this note? This cannot be undone.')) {
+                                            if (user) await useStudyStore.getState().deleteFlashcards(user.uid, noteId);
+                                        }
+                                    }}
+                                    className={dashboardStyles.studyActionBtn}
+                                    style={{
+                                        marginTop: '1rem',
+                                        background: 'transparent',
+                                        color: 'var(--color-error)',
+                                        borderColor: 'var(--color-error)',
+                                        opacity: 0.8
+                                    }}
+                                >
+                                    Delete Set
                                 </button>
                             )}
                         </div>
