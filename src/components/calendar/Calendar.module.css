@@ -1,0 +1,184 @@
+.container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.header {
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-surface);
+}
+
+.monthNavigation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.monthTitle {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    letter-spacing: -0.02em;
+    min-width: 200px;
+    text-align: center;
+}
+
+.navBtn {
+    padding: 0.5rem;
+    color: var(--color-text-muted);
+    border-radius: var(--radius-full);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-subtle);
+}
+
+.navBtn:hover {
+    color: var(--color-text-main);
+    background: var(--color-bg-subtle-hover, rgba(0, 0, 0, 0.05));
+    transform: scale(1.1);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    flex: 1;
+    overflow-y: auto;
+}
+
+.dayHeader {
+    padding: 1rem;
+    text-align: center;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+    border-right: 1px solid var(--color-bg-subtle);
+    background: var(--color-bg-subtle);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.dayHeader:last-child {
+    border-right: none;
+}
+
+.dayCell {
+    min-height: 140px;
+    border-right: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: background-color var(--duration-fast);
+    position: relative;
+}
+
+.dayCell:nth-child(7n) {
+    border-right: none;
+}
+
+.dayCell:hover {
+    background-color: var(--color-bg-subtle);
+}
+
+.disabled {
+    background-color: var(--color-bg-main);
+    color: var(--color-text-faint);
+}
+
+.today {
+    background-color: var(--color-primary-subtle);
+}
+
+.dayNumber {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.today .dayNumber {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.eventPill {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
+    font-weight: 600;
+    border-left: 3px solid var(--color-primary);
+    transition: transform var(--duration-fast);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.eventPill:hover {
+    transform: translateY(-1px);
+    filter: brightness(0.95);
+}
+
+/* Specific event types */
+.typeWork {
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
+    border-left-color: var(--color-primary);
+}
+
+.typePersonal {
+    background-color: var(--color-success-bg);
+    color: var(--color-success);
+    border-left-color: var(--color-success);
+}
+
+.typeMeeting {
+    background-color: var(--color-warning-bg);
+    color: var(--color-warning);
+    border-left-color: var(--color-warning);
+}
+
+.deleteBtn {
+    opacity: 0;
+    color: currentColor;
+    background: transparent;
+    border: none;
+    font-size: 1rem;
+    line-height: 0.5;
+    cursor: pointer;
+    padding: 0 2px;
+    border-radius: 2px;
+    transition: opacity 0.2s, background 0.2s;
+}
+
+.eventPill:hover .deleteBtn {
+    opacity: 0.7;
+}
+
+.deleteBtn:hover {
+    opacity: 1 !important;
+    background: rgba(0, 0, 0, 0.1);
+}

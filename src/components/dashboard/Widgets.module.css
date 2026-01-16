@@ -1,0 +1,292 @@
+.widgetContainer {
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.widgetHeader {
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--color-bg-subtle);
+}
+
+.title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text-main);
+}
+
+.icon {
+    color: var(--color-primary);
+}
+
+.iconBtn {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.iconBtn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--color-primary);
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Stock Styles */
+.stockList {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+}
+
+.stockList::-webkit-scrollbar {
+    width: 6px;
+}
+
+.stockList::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.stockList::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 20px;
+}
+
+.stockList:hover::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+}
+
+/* News Styles */
+.newsList {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+}
+
+.newsList::-webkit-scrollbar {
+    width: 6px;
+}
+
+.newsList::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.newsList::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 20px;
+}
+
+.newsList:hover::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+}
+
+.newsItem {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 0.75rem;
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    transition: background 0.1s;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.newsItem:last-child {
+    border-bottom: none;
+}
+
+.newsItem:hover {
+    background: var(--color-bg-subtle);
+}
+
+.newsContent {
+    flex: 1;
+    margin-right: 0.5rem;
+}
+
+.newsTitle {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-text-main);
+    line-height: 1.4;
+}
+
+.newsMeta {
+    display: flex;
+    align-items: center;
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+}
+
+.source {
+    font-weight: 600;
+}
+
+.dot {
+    margin: 0 4px;
+}
+
+.linkIcon {
+    color: var(--color-text-muted);
+    opacity: 0;
+    transition: opacity 0.2s;
+    margin-top: 4px;
+}
+
+.newsItem:hover .linkIcon {
+    opacity: 1;
+}
+
+.addForm {
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    gap: 0.75rem;
+    animation: slideDown 0.2s ease;
+    background: var(--color-bg-subtle);
+}
+
+.inputGroup {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    padding-right: 2.5rem;
+    /* space for icon if needed */
+    border-radius: var(--radius-full);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-surface);
+    color: var(--color-text-main);
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    outline: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-bg);
+}
+
+.submitBtn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+}
+
+.submitBtn:hover {
+    transform: scale(1.05);
+    background: var(--color-primary-dark, var(--color-primary));
+}
+
+.stockItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    transition: background 0.1s, transform 0.2s;
+    cursor: grab;
+    /* Indicate draggable */
+    background: var(--color-bg-surface);
+}
+
+.stockItem:active {
+    cursor: grabbing;
+}
+
+.stockItemDragging {
+    opacity: 0.5;
+    background: var(--color-bg-subtle);
+}
+
+.stockItemOver {
+    border-top: 2px solid var(--color-primary);
+}
+
+.stockItem:hover {
+    background: var(--color-bg-subtle);
+}
+
+.stockInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.symbol {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--color-text-main);
+}
+
+.price {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.change {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.positive {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.negative {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}

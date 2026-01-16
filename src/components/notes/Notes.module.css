@@ -1,0 +1,806 @@
+.container {
+    display: flex;
+    height: calc(100vh - 4rem);
+    gap: 2rem;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.sidebar {
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--duration-normal);
+}
+
+.sidebarHeader {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--color-bg-subtle);
+}
+
+.sidebarHeader span {
+    font-weight: 700;
+    color: var(--color-text-main);
+    font-size: 1.125rem;
+}
+
+.addButton {
+    padding: 0.5rem;
+    border-radius: 50%;
+    color: var(--color-primary);
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.addButton:hover {
+    background: var(--color-primary);
+    color: var(--color-white-static);
+    border-color: var(--color-primary);
+    transform: rotate(90deg);
+}
+
+/* Sidebar Sections */
+.foldersSection {
+    padding: 1rem 0 0.5rem 0;
+    border-bottom: 1px solid var(--color-border);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.folderHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1.5rem;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+}
+
+.folderHeader:hover {
+    color: var(--color-primary);
+}
+
+.folderList {
+    padding: 0.25rem 0;
+}
+
+.folderItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem 0.6rem 1.75rem;
+    /* Increased left padding for indentation */
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    margin: 0.125rem 0.75rem;
+    border-radius: var(--radius-md);
+}
+
+.folderItem:hover {
+    background-color: var(--color-bg-subtle);
+    color: var(--color-text-main);
+    transform: translateX(4px);
+    /* Cool hover animation */
+}
+
+.folderItem.activeFolder {
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.folderInput {
+    width: calc(100% - 2rem);
+    margin: 0.5rem 1rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    outline: none;
+    background: var(--color-bg-surface);
+    color: var(--color-text-main);
+    animation: slideDown 0.2s ease-out;
+}
+
+.iconButton {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    padding: 0.25rem;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.iconButton:hover {
+    background: var(--color-bg-subtle-hover);
+    color: var(--color-primary);
+}
+
+.deleteFolderButton {
+    opacity: 0;
+    transition: all 0.2s;
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    padding: 0.25rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.folderItem:hover .deleteFolderButton {
+    opacity: 1;
+}
+
+.deleteFolderButton:hover {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+}
+
+/* Note List Section */
+.noteList {
+    overflow-y: auto;
+    flex: 1;
+    padding-top: 0.5rem;
+}
+
+.noteItem {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.noteItem:hover {
+    background-color: var(--color-bg-subtle);
+    padding-left: 1.75rem;
+    /* Subtle indent on hover */
+}
+
+.noteItem.active {
+    background-color: var(--color-bg-active);
+    border-left-color: var(--color-primary);
+}
+
+.noteTitle {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--color-text-main);
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.noteDate {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+/* ... existing ... */
+
+.moreButton {
+    opacity: 0;
+    transition: all 0.2s;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    padding: 0.25rem;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.noteItem:hover .moreButton,
+.moreButton.active {
+    opacity: 1;
+}
+
+.moreButton:hover {
+    background-color: var(--color-bg-subtle-hover);
+    color: var(--color-text-main);
+}
+
+.menuOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    background: transparent;
+}
+
+.menuDropdown {
+    position: absolute;
+    right: 1rem;
+    top: 3rem;
+    /* Adjust dynamic positioning in JS if needed, but relative parent might work */
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    min-width: 150px;
+    padding: 0.25rem;
+    animation: slideDown 0.1s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+
+.menuItem {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    color: var(--color-text-main);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: none;
+    border: none;
+    text-align: left;
+    width: 100%;
+}
+
+.menuItem:hover {
+    background: var(--color-bg-subtle);
+}
+
+.menuItem.danger {
+    color: var(--color-danger);
+}
+
+.menuItem.danger:hover {
+    background: var(--color-danger-bg);
+}
+
+.folderSubmenu {
+    border-top: 1px solid var(--color-border);
+    margin-top: 0.25rem;
+    padding-top: 0.25rem;
+}
+
+.folderOption {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.folderOption:hover {
+    background: var(--color-bg-subtle);
+    color: var(--color-primary);
+}
+
+
+.editorContainer {
+    flex: 1;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.editorContainer:focus-within {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary-subtle);
+}
+
+.editorHeader {
+    padding: 2rem 3rem 1rem;
+}
+
+.titleInput {
+    width: 100%;
+    font-size: 2.25rem;
+    font-weight: 800;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--color-text-main);
+    letter-spacing: -0.02em;
+}
+
+.titleInput::placeholder {
+    color: var(--color-text-faint);
+}
+
+/* Toolbar Styles */
+.toolbar {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-subtle);
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.toolbarGroup {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: var(--color-white-adaptive);
+    padding: 0.25rem;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border);
+}
+
+.sizeInput {
+    border: none;
+    outline: none;
+    font-size: 0.875rem;
+    color: var(--color-text-main);
+    background: transparent;
+    padding: 0 0.5rem;
+    cursor: pointer;
+    font-family: inherit;
+    height: 2rem;
+    width: 65px;
+    border-radius: var(--radius-sm);
+    text-align: left;
+    padding-left: 0.75rem;
+    font-weight: 600;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.sizeInput::-webkit-inner-spin-button,
+.sizeInput::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.sizeInput:hover {
+    background-color: var(--color-bg-subtle-hover, rgba(0, 0, 0, 0.05));
+}
+
+.sizeCombobox {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: var(--color-bg-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    transition: all 0.2s;
+}
+
+.sizeCombobox:hover {
+    border-color: var(--color-primary-subtle);
+    box-shadow: var(--shadow-sm);
+}
+
+.sizeChevron {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.25rem;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    border-left: 1px solid var(--color-border);
+    height: 1.5rem;
+    transition: color 0.2s;
+}
+
+.sizeChevron:hover {
+    color: var(--color-primary);
+}
+
+.presetsMenu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 100;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    min-width: 60px;
+    padding: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    animation: slideDown 0.2s ease-out;
+}
+
+.presetItem {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-main);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.presetItem:hover {
+    background: var(--color-bg-subtle);
+    color: var(--color-primary);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.divider {
+    width: 1px;
+    height: 24px;
+    background-color: var(--color-border);
+    margin: 0 0.5rem;
+}
+
+.toolbarBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    transition: all 0.2s;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.toolbarBtn:hover {
+    background-color: var(--color-bg-subtle);
+    color: var(--color-text-main);
+}
+
+.toolbarBtn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.toolbarBtn.isActive {
+    background-color: var(--color-primary-subtle);
+    color: var(--color-primary);
+}
+
+.toolbarBtn.aiBtn {
+    color: var(--color-primary);
+    background: var(--color-primary-subtle);
+}
+
+.toolbarBtn.aiBtn:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+.toolbarBtn.youtubeBtn {
+    color: #FF0000;
+}
+
+.toolbarBtn.youtubeBtn:hover {
+    background: #FF0000;
+    color: white;
+}
+
+
+/* AI Modal Styles */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.aiModal {
+    background: var(--color-bg-surface);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 500px;
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+    animation: modalSlide 0.3s ease-out;
+}
+
+.modalHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.modalTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 700;
+    font-size: 1.125rem;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+}
+
+.closeBtn:hover {
+    background: var(--color-bg-subtle);
+    color: var(--color-text-main);
+}
+
+.modalContent {
+    padding: 1.5rem;
+}
+
+.modalSubtitle {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.aiTextarea {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-subtle);
+    color: var(--color-text-main);
+    font-family: inherit;
+    font-size: 1rem;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.aiTextarea:focus {
+    border-color: var(--color-primary);
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.cancelBtn {
+    padding: 0.625rem 1.25rem;
+    border: 1px solid var(--color-border);
+    background: transparent;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+    background: var(--color-bg-subtle);
+}
+
+.aiSubmitBtn {
+    padding: 0.625rem 1.25rem;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.aiSubmitBtn:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
+}
+
+.aiSubmitBtn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes modalSlide {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes popIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.9) translateY(10px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.popIn {
+    animation: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.editorContent {
+    flex: 1;
+    overflow-y: auto;
+    padding: 3rem 4rem;
+    /* Adjusted for better reading width */
+}
+
+/* TipTap ProseMirror styles */
+.editorContent :global(.ProseMirror) {
+    outline: none;
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: var(--color-text-main);
+    max-width: 75ch;
+}
+
+.editorContent :global(.ProseMirror p) {
+    margin-bottom: 1.5em;
+    min-height: 1.5em;
+}
+
+.editorContent :global(.ProseMirror ul),
+.editorContent :global(.ProseMirror ol) {
+    padding-left: 1.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.editorContent :global(.ProseMirror li) {
+    margin-bottom: 0.5rem;
+}
+
+.editorContent :global(.ProseMirror h1) {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    letter-spacing: -0.01em;
+}
+
+.editorContent :global(.ProseMirror h2) {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    color: var(--color-text-main);
+}
+
+/* Toggle Switch Styles */
+.toggleContainer {
+    margin: 1rem 0;
+    padding: 0.75rem;
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
+
+.toggleLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggleInput {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggleSlider {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: var(--color-border);
+    border-radius: 24px;
+    transition: background 0.3s ease;
+    flex-shrink: 0;
+}
+
+.toggleSlider::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    left: 3px;
+    top: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggleInput:checked+.toggleSlider {
+    background: var(--color-primary);
+}
+
+.toggleInput:checked+.toggleSlider::before {
+    transform: translateX(20px);
+}
+
+.toggleText {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-main);
+}

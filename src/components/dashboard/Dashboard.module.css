@@ -1,0 +1,878 @@
+.dashboardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.greetingSection {
+    flex: 1;
+    min-width: 250px;
+}
+
+.grid {
+    position: relative;
+    padding-bottom: 3rem;
+    animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gridItem {
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.gridItemEditing {
+    cursor: grab;
+    user-select: none;
+    outline: 2px dashed var(--color-primary);
+    outline-offset: 4px;
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-surface);
+    z-index: 1;
+}
+
+.gridItemEditing:active {
+    cursor: grabbing;
+}
+
+.dragHandle {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.25rem;
+    color: var(--color-text-muted);
+    cursor: grab;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 10;
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius-sm);
+}
+
+.gridItemEditing .dragHandle {
+    opacity: 1;
+}
+
+/* Edit Mode Buttons */
+.editActions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.actionBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: 1px solid var(--color-border);
+}
+
+.editBtn {
+    background: var(--color-bg-surface);
+    color: var(--color-text-main);
+}
+
+.editBtn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.saveBtn {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+.saveBtn:hover {
+    background: var(--color-primary-dark, var(--color-primary));
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Match Size Feature */
+.matchSizeBtn {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    padding: 0.375rem;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s ease;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gridItemEditing .matchSizeBtn {
+    opacity: 1;
+}
+
+.matchSizeBtn:hover {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+    transform: scale(1.1);
+}
+
+.matchSizeBtnActive {
+    background: var(--color-primary) !important;
+    color: white !important;
+    border-color: var(--color-primary) !important;
+    opacity: 1 !important;
+}
+
+.gridItemSelected {
+    outline: 2px solid var(--color-primary) !important;
+    outline-offset: 4px;
+    box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb, 99, 102, 241), 0.1);
+}
+
+.matchSizeHint {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--color-primary-bg, rgba(99, 102, 241, 0.1));
+    color: var(--color-primary);
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+    font-weight: 600;
+    animation: slideDown 0.3s ease;
+}
+
+/* React Grid Layout Overrides */
+:global(.react-grid-placeholder) {
+    background: var(--color-primary) !important;
+    opacity: 0.1 !important;
+    border-radius: var(--radius-lg) !important;
+    transition-duration: 100ms !important;
+    z-index: 2 !important;
+}
+
+/* Resize Handle Visibility */
+.react-resizable-handle {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.gridItemEditing:hover :global(.react-resizable-handle) {
+    opacity: 1;
+}
+
+:global(.react-resizable-handle) {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    bottom: 0;
+    right: 0;
+    cursor: se-resize;
+}
+
+:global(.react-resizable-handle::after) {
+    content: "";
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--color-text-muted);
+    border-bottom: 2px solid var(--color-text-muted);
+}
+
+.dashboardColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    height: 100%;
+}
+
+
+
+.card {
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-border-hover);
+}
+
+.cardTitle {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    color: var(--color-text-main);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    letter-spacing: -0.01em;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Schedule specific */
+.scheduleItem {
+    display: flex;
+    gap: 1.25rem;
+    align-items: flex-start;
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    transition: background-color var(--duration-fast);
+}
+
+.scheduleItem:hover {
+    background-color: var(--color-bg-subtle);
+}
+
+.time {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    width: 4.5rem;
+    flex-shrink: 0;
+    text-align: right;
+    padding-top: 0.125rem;
+}
+
+.eventContent {
+    flex: 1;
+}
+
+.eventTitle {
+    font-weight: 600;
+    color: var(--color-text-main);
+    margin-bottom: 0.125rem;
+}
+
+.eventType {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--color-bg-subtle);
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: var(--radius-full);
+}
+
+/* Task specific */
+.taskItem {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    transition: all var(--duration-fast);
+}
+
+.taskItem:hover {
+    background: var(--color-bg-surface);
+    border-color: var(--color-border);
+    box-shadow: var(--shadow-sm);
+}
+
+.iconButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+    border-radius: 50%;
+    color: var(--color-text-muted);
+    transition: all var(--duration-fast);
+}
+
+.iconButton:hover {
+    background: var(--color-success-bg);
+    color: var(--color-success);
+}
+
+.priorityHigh {
+    color: var(--color-danger);
+    background: var(--color-danger-bg);
+    font-size: 0.625rem;
+    font-weight: 700;
+    margin-left: auto;
+    padding: 0.25rem 0.625rem;
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+}
+
+.priorityMedium {
+    color: var(--color-warning);
+    background: var(--color-warning-bg);
+    font-size: 0.625rem;
+    font-weight: 700;
+    margin-left: auto;
+    padding: 0.25rem 0.625rem;
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+}
+
+/* Routine specific */
+.routineItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--duration-fast);
+    border: 1px solid transparent;
+}
+
+.routineItem:hover {
+    background: var(--color-bg-surface);
+    border-color: var(--color-border);
+    box-shadow: var(--shadow-sm);
+    transform: none;
+}
+
+.routineItem.completed {
+    background-color: var(--color-success-bg);
+    opacity: 0.8;
+}
+
+.streak {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-warning);
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    background: var(--color-white-adaptive);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-sm);
+}
+
+.clockContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: var(--color-bg-surface);
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+    animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    width: 100%;
+    height: 100%;
+}
+
+.clockTime {
+    font-family: 'Inter', monospace;
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    line-height: 1;
+    letter-spacing: -0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.clockDate {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.quoteCard {
+    background: var(--color-bg-surface);
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+    animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    min-height: 160px;
+}
+
+.quoteCard::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+    background: linear-gradient(to bottom, var(--color-primary), var(--color-primary-dark, var(--color-primary)));
+    opacity: 0.8;
+}
+
+.quoteIcon {
+    color: var(--color-primary);
+    opacity: 0.4;
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+}
+
+.quoteContent {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.quoteText {
+    font-size: 1rem;
+    font-style: italic;
+    font-weight: 500;
+    color: var(--color-text-main);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.quoteAuthor {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 1200px) {
+    .dashboardHeader {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1.5rem;
+    }
+
+    .quoteCard {
+        max-width: none;
+        width: 100%;
+    }
+}
+
+@keyframes taskComplete {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.05);
+        color: var(--color-success);
+    }
+
+    100% {
+        transform: scale(0.8) translateX(20px);
+        opacity: 0;
+    }
+}
+
+.taskCompleting {
+    animation: taskComplete 0.5s ease-in-out forwards;
+    pointer-events: none;
+    /* Prevent double clicks */
+}
+
+/* Study Modal & Flashcards */
+.studyContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 300px;
+    perspective: 1000px;
+}
+
+.flashcard {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    height: 300px;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.flashcard.flipped {
+    transform: rotateY(180deg);
+}
+
+.flashcardFace {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    box-shadow: var(--shadow-md);
+}
+
+.flashcardBack {
+    transform: rotateY(180deg);
+    background: var(--bg-subtle);
+    border-color: var(--color-primary);
+}
+
+.studyControls {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.studyActionBtn {
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.studyActionBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btnPrimary {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+.btnDanger {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+    border-color: transparent;
+}
+
+.btnSuccess {
+    background: var(--color-success-bg);
+    color: var(--color-success);
+    border-color: transparent;
+}
+
+@keyframes slideInFromRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+
+/* Add Widget Menu */
+.addWidgetContainer {
+    position: relative;
+    z-index: 50;
+}
+
+.addWidgetBtn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.addWidgetBtn:hover {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+    transform: rotate(90deg);
+}
+
+.widgetDropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0.5rem;
+    width: 280px;
+    max-height: 400px;
+    overflow-y: auto;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 0.5rem;
+    animation: slideDown 0.2s ease;
+}
+
+.widgetOption {
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: background 0.1s;
+    color: var(--color-text-main);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.widgetOption:hover {
+    background: var(--color-bg-subtle);
+    color: var(--color-primary);
+}
+
+.widgetOptionIcon {
+    color: var(--color-text-muted);
+}
+
+
+.taskInput {
+    width: 100%;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-subtle);
+    color: var(--color-text-main);
+    font-size: 0.9rem;
+    outline: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: var(--shadow-sm) inset;
+}
+
+.taskInput:focus {
+    background: var(--color-bg-surface);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary-bg), var(--shadow-sm);
+    transform: translateY(-1px);
+}
+
+.scrollableList {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+}
+
+.scrollableList::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scrollableList::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.scrollableList::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 20px;
+}
+
+.scrollableList:hover::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+}
+
+/* AI Modal Styles (Copied from Notes.module.css for consistency) */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modalContent {
+    background: var(--color-bg-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+    animation: modalSlide 0.3s ease-out;
+}
+
+.modalHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-subtle);
+}
+
+.modalTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: var(--color-text-main);
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+}
+
+.closeBtn:hover {
+    background: var(--color-bg-subtle);
+    color: var(--color-text-main);
+}
+
+.modalBody {
+    padding: 2rem;
+}
+
+.modalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--color-border);
+    background: var(--color-bg-subtle);
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--color-text-main);
+}
+
+.input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-surface);
+    color: var(--color-text-main);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary-bg);
+}
+
+.cancelBtn {
+    padding: 0.625rem 1.25rem;
+    border: 1px solid var(--color-border);
+    background: transparent;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--color-text-main);
+}
+
+.cancelBtn:hover {
+    background: var(--color-bg-subtle);
+}
+
+.saveBtn {
+    padding: 0.625rem 1.25rem;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.saveBtn:hover {
+    background: var(--color-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--color-primary-rgb, 99, 102, 241), 0.3);
+}
+
+@keyframes modalSlide {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
