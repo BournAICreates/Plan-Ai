@@ -10,6 +10,7 @@ export interface Task {
     status: 'todo' | 'in-progress' | 'done';
     dueDate?: Date;
     priority: 'light' | 'medium' | 'urgent';
+    order?: number;
     category?: 'school' | 'work' | 'personal';
     completedAt?: Date;
 }
@@ -22,6 +23,7 @@ interface TaskState {
     addTask: (uid: string, task: Omit<Task, 'id'>) => Promise<void>;
     toggleStatus: (uid: string, id: string, status: Task['status']) => Promise<void>;
     deleteTask: (uid: string, id: string) => Promise<void>;
+    updateTaskOrder: (uid: string, id: string, newOrder: number) => Promise<void>;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -36,17 +38,19 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         set({ loading: true });
         console.log('[useTaskStore] Subscribing to tasks for:', uid);
 
-        const q = query(collection(db, `users/${uid}/tasks`), orderBy('createdAt', 'desc'));
+        // Sort by order descending (newest/highest on top)
+        const q = query(collection(db, `users/${uid}/tasks`), orderBy('order', 'desc'));
 
         const unsub = onSnapshot(q, (snapshot) => {
-            console.log('[useTaskStore] Snapshot received. Docs:', snapshot.docs.length);
             const tasks = snapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
                     id: doc.id,
                     ...data,
                     dueDate: data.dueDate ? data.dueDate.toDate() : undefined,
-                    completedAt: data.completedAt ? data.completedAt.toDate() : undefined
+                    completedAt: data.completedAt ? data.completedAt.toDate() : undefined,
+                    // Backfill order if missing for seamless migration
+                    order: data.order ?? (data.createdAt?.toMillis() || Date.now())
                 } as Task;
             });
             set({ tasks, loading: false });
@@ -58,9 +62,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     },
 
     addTask: async (uid, task) => {
+        const now = Timestamp.now();
         await addDoc(collection(db, `users/${uid}/tasks`), {
             ...task,
-            createdAt: Timestamp.now()
+            createdAt: now,
+            order: now.toMillis() // Default order = timestamp
         });
     },
 
@@ -77,5 +83,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     deleteTask: async (uid, id) => {
         await deleteDoc(doc(db, `users/${uid}/tasks`, id));
+    },
+
+    updateTaskOrder: async (uid, id, newOrder) => {
+        const taskRef = doc(db, `users/${uid}/tasks`, id);
+        await updateDoc(taskRef, { order: newOrder });
     }
 }));

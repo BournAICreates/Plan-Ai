@@ -1,26 +1,26 @@
-
 import { useState } from 'react';
 import { useTaskStore } from '../../store/useTaskStore';
 import { useAuth } from '../../contexts/AuthContext';
-import { Circle, CheckCircle2 } from 'lucide-react';
+import { Circle, CheckCircle2, GripVertical } from 'lucide-react';
+import { CustomSelect } from '../ui/CustomSelect';
 import styles from './Dashboard.module.css';
 
 export function ActiveTasks() {
-    const { tasks, toggleStatus, addTask } = useTaskStore();
+    const { tasks, toggleStatus, addTask, updateTaskOrder } = useTaskStore();
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<'school' | 'work'>('school');
     const [showAdd, setShowAdd] = useState(false);
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [newTaskPriority, setNewTaskPriority] = useState<'light' | 'medium' | 'urgent'>('medium');
     const [killingTaskIds, setKillingTaskIds] = useState<Set<string>>(new Set());
+    const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
 
-    const activeTasks = tasks.map(t => ({ ...t, priority: t.priority || 'medium' })).filter(t => { // Backward compact
-        // Category Filter
+    // Filter and sort tasks (store already sorts by order desc, but we filter here)
+    const activeTasks = tasks.map(t => ({ ...t, priority: t.priority || 'medium' })).filter(t => {
         const matchesCategory = t.category === activeTab || (!t.category && activeTab === 'school');
         if (!matchesCategory) return false;
 
-        // Status Filter
-        // If it's done, only show if it's currently animating out
+        // Show done tasks only if animating out
         if (t.status === 'done' && !killingTaskIds.has(t.id)) {
             return false;
         }
@@ -30,16 +30,13 @@ export function ActiveTasks() {
     const handleToggle = (task: any) => {
         if (!user) return;
 
-        // If it's already done (and somehow visible), just fast toggle back
         if (task.status === 'done') {
             toggleStatus(user.uid, task.id, 'todo');
             return;
         }
 
-        // If it's todo, we animate it out
         setKillingTaskIds(prev => new Set(prev).add(task.id));
 
-        // Wait for animation
         setTimeout(() => {
             toggleStatus(user.uid, task.id, 'done');
             setKillingTaskIds(prev => {
@@ -47,7 +44,7 @@ export function ActiveTasks() {
                 next.delete(task.id);
                 return next;
             });
-        }, 500); // 0.5s matches CSS animation
+        }, 500);
     };
 
     const handleAddTask = async (e: React.FormEvent) => {
@@ -58,16 +55,56 @@ export function ActiveTasks() {
             await addTask(user.uid, {
                 title: newTaskTitle,
                 status: 'todo',
-                priority: newTaskPriority, // Use state
+                priority: newTaskPriority,
                 category: activeTab,
                 dueDate: new Date()
             });
             setNewTaskTitle('');
-            setNewTaskPriority('medium'); // Reset
+            setNewTaskPriority('medium');
             setShowAdd(false);
         } catch (error) {
             console.error("Failed to add task", error);
         }
+    };
+
+    // Drag and Drop Logic
+    const handleDragStart = (e: React.DragEvent, taskId: string) => {
+        setDraggedTaskId(taskId);
+        e.dataTransfer.effectAllowed = 'move';
+        // Add a ghost class or image if needed
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault(); // Necessary to allow dropping
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = async (e: React.DragEvent, targetTaskId: string) => {
+        e.preventDefault();
+        if (!user || !draggedTaskId || draggedTaskId === targetTaskId) return;
+
+        const draggedIndex = activeTasks.findIndex(t => t.id === draggedTaskId);
+        const targetIndex = activeTasks.findIndex(t => t.id === targetTaskId);
+
+        if (draggedIndex === -1 || targetIndex === -1) return;
+
+        // Logic: Move dragged task to target index position
+        // Since we sort DESCENDING (higher order = top), if we move to targetIndex,
+        // we want to be "between" targetIndex-1 and targetIndex (if moving up)
+        // or targetIndex and targetIndex+1 (if moving down? No, standard list logic)
+
+        // Simpler: Just put it "Above" the target task regardless of direction?
+        // Let's assume dropping ON a task puts it ABOVE that task.
+
+        // We need an order value GREATER than targetTask.order, but LESS than targetTask_Predecessor.order
+        const targetOrder = activeTasks[targetIndex].order || 0;
+        const prevTask = activeTasks[targetIndex - 1];
+        const prevOrder = prevTask ? (prevTask.order || 0) : targetOrder + 200000; // If top, add big buffer
+
+        let newOrder = (targetOrder + prevOrder) / 2;
+
+        await updateTaskOrder(user.uid, draggedTaskId, newOrder);
+        setDraggedTaskId(null);
     };
 
     return (
@@ -128,7 +165,7 @@ export function ActiveTasks() {
             </div>
 
             {showAdd && (
-                <form onSubmit={handleAddTask} style={{ marginBottom: '1rem', padding: '0 4px', display: 'flex', gap: '8px' }}>
+                <form onSubmit={handleAddTask} style={{ marginBottom: '1rem', padding: '0 4px', display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <input
                         type="text"
                         value={newTaskTitle}
@@ -138,24 +175,17 @@ export function ActiveTasks() {
                         style={{ flex: 1 }}
                         autoFocus
                     />
-                    <select
-                        value={newTaskPriority}
-                        onChange={(e) => setNewTaskPriority(e.target.value as any)}
-                        style={{
-                            padding: '0 8px',
-                            borderRadius: '8px',
-                            border: '1px solid var(--color-border)',
-                            background: 'var(--color-bg-subtle)',
-                            color: 'var(--color-text-main)',
-                            fontSize: '0.75rem',
-                            outline: 'none',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        <option value="light">Light</option>
-                        <option value="medium">Medium</option>
-                        <option value="urgent">Urgent</option>
-                    </select>
+                    <div style={{ width: '120px' }}>
+                        <CustomSelect
+                            value={newTaskPriority}
+                            onChange={(val) => setNewTaskPriority(val as any)}
+                            options={[
+                                { value: 'light', label: 'Light', color: 'var(--color-success)' },
+                                { value: 'medium', label: 'Medium', color: 'var(--color-warning)' },
+                                { value: 'urgent', label: 'Urgent', color: 'var(--color-error)' }
+                            ]}
+                        />
+                    </div>
                 </form>
             )}
 
@@ -168,36 +198,40 @@ export function ActiveTasks() {
                 {activeTasks.map((task) => {
                     const isDone = task.status === 'done';
                     const isKilling = killingTaskIds.has(task.id);
-
-                    // Priority Colors
-                    const getPriorityColor = (p: string) => {
-                        switch (p) {
-                            case 'urgent': return 'var(--color-error)';
-                            case 'medium': return 'var(--color-warning)';
-                            case 'light': return 'var(--color-success)';
-                            default: return 'var(--color-text-muted)';
-                        }
-                    };
-
-                    const priorityColor = getPriorityColor(task.priority);
+                    const priorityColor =
+                        task.priority === 'urgent' ? 'var(--color-error)' :
+                            task.priority === 'medium' ? 'var(--color-warning)' :
+                                'var(--color-success)';
 
                     return (
                         <div
                             key={task.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, task.id)}
+                            onDragOver={handleDragOver}
+                            onDrop={(e) => handleDrop(e, task.id)}
                             className={`${styles.taskItem} ${isKilling ? styles.taskCompleting : ''}`}
-                            style={{ opacity: isDone ? 0.6 : 1 }}
+                            style={{
+                                opacity: isDone ? 0.6 : 1,
+                                cursor: 'grab',
+                                border: draggedTaskId === task.id ? '1px dashed var(--color-primary)' : undefined,
+                                background: draggedTaskId === task.id ? 'var(--color-bg-subtle)' : undefined
+                            }}
                         >
+                            <div style={{ color: 'var(--color-text-muted)', marginRight: '6px', cursor: 'grab', display: 'flex', alignItems: 'center' }}>
+                                <GripVertical size={14} />
+                            </div>
+
                             <button
                                 className={styles.taskCheck}
                                 onClick={() => handleToggle(task)}
                             >
-                                {isDone || isKilling ? <CheckCircle2 size={18} className="text-green-500" style={{ color: 'var(--color-success)' }} /> : <Circle size={18} />}
+                                {isDone || isKilling ? <CheckCircle2 size={18} style={{ color: 'var(--color-success)' }} /> : <Circle size={18} />}
                             </button>
                             <span style={{ textDecoration: isDone ? 'line-through' : 'none', color: isDone ? 'var(--color-text-muted)' : 'inherit', transition: 'all 0.3s', flex: 1 }}>
                                 {task.title}
                             </span>
 
-                            {/* Priority Badge */}
                             <span style={{
                                 fontSize: '0.65rem',
                                 padding: '2px 6px',
