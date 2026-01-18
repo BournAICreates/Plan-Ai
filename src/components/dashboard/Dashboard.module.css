@@ -876,3 +876,71 @@
         transform: translateY(0);
     }
 }
+
+/* Study Modal Specific Inputs */
+.studyFormGroup {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 450px;
+    margin-bottom: 2rem;
+}
+
+.studyLabel {
+    width: 100%;
+    text-align: left;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text-main);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.studyInputBase {
+    width: 100%;
+    padding: 1rem;
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--color-bg-subtle);
+    background: var(--color-bg-subtle);
+    color: var(--color-text-main);
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+}
+
+.studyInputBase:hover {
+    border-color: var(--color-border);
+    background: var(--color-bg-surface);
+}
+
+.studyInputBase:focus {
+    background: var(--color-bg-surface);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px var(--color-primary-bg);
+}
+
+.studyTextarea {
+    min-height: 120px;
+    resize: vertical;
+    line-height: 1.6;
+}
+
+.studyNumberInput {
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.25rem;
+    width: 100px !important;
+    padding: 0.5rem !important;
+    height: 50px;
+}
+
+.studyOptionsRow {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    width: 100%;
+}

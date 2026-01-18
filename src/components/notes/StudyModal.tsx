@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Sparkles, ChevronLeft, ChevronRight, RotateCcw, GraduationCap, Loader2, Zap, Trash2 } from 'lucide-react';
+import { X, Sparkles, ChevronLeft, ChevronRight, RotateCcw, GraduationCap, Loader2, Zap, Trash2, Hash } from 'lucide-react';
 import styles from './Notes.module.css'; // Re-using notes styles for modal layout
 import dashboardStyles from '../dashboard/Dashboard.module.css'; // Using dashboard styles for flashcard specific classes we added
 import { useStudyStore } from '../../store/useStudyStore';
@@ -37,6 +37,7 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
     }>({ active: false, cards: [], startTime: null, endTime: null });
 
     const [cardCount, setCardCount] = useState<number | 'auto'>('auto');
+    const [customInstructions, setCustomInstructions] = useState('');
 
     // Filter cards for standard modes
     const displayedCards = useMemo(() => {
@@ -116,7 +117,6 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
                 ? "Do NOT limit the number of flashcards. Create as many as necessary to fully cover the material (e.g., 20, 30, 50+ if needed)."
                 : `Create exactly ${cardCount} flashcards.`;
 
-            // Updated prompt to be strictly JSON array
             const prompt = `Create a comprehensive deck of flashcards based on the following text.
                 Return a JSON array of objects, where each object has "front" and "back" properties.
                 
@@ -124,7 +124,8 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
                 1. Cover every key concept, definition, useful detail, and potential test question found in the text.
                 2. ${countInstruction}
                 3. Ensure the flashcards are suitable for deep learning, not just surface-level review.
-                4. Do not include markdown formatting. Just raw JSON.
+                4. ${customInstructions ? `USER CUSTOM INSTRUCTIONS: ${customInstructions}` : ''}
+                5. Do not include markdown formatting. Just raw JSON.
                 
                 Text: ${noteContent}`;
 
@@ -394,25 +395,28 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
                                     ? "Use AI to instantly turn your note into a deck of flashcards."
                                     : "You've mastered all these cards! Switch to 'All' to review everything."}
                             </p>
-                            <div style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', alignItems: 'center' }}>
-                                <label style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>Number of Flashcards:</label>
+                            <div className={dashboardStyles.studyFormGroup}>
+                                <label className={dashboardStyles.studyLabel}>
+                                    <Hash size={16} /> Number of Flashcards
+                                </label>
 
-                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                                    <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--color-bg-secondary)', padding: '4px', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+                                <div className={dashboardStyles.studyOptionsRow}>
+                                    <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--color-bg-subtle)', padding: '4px', borderRadius: '14px', flex: 1, border: '1px solid transparent' }}>
                                         {(['auto', 5, 10, 25] as const).map((qOption) => (
                                             <button
                                                 key={qOption}
                                                 onClick={() => setCardCount(qOption)}
                                                 style={{
-                                                    padding: '0.4rem 1rem',
-                                                    borderRadius: '6px',
+                                                    flex: 1,
+                                                    padding: '0.6rem 0.2rem',
+                                                    borderRadius: '10px',
                                                     fontSize: '0.9rem',
-                                                    fontWeight: 500,
+                                                    fontWeight: 600,
                                                     cursor: 'pointer',
-                                                    background: cardCount === qOption ? 'var(--color-background)' : 'transparent',
+                                                    background: cardCount === qOption ? 'var(--color-bg-surface)' : 'transparent',
                                                     color: cardCount === qOption ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                                                    boxShadow: cardCount === qOption ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-                                                    border: '1px solid transparent',
+                                                    boxShadow: cardCount === qOption ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                                                    border: '1px solid',
                                                     borderColor: cardCount === qOption ? 'var(--color-border)' : 'transparent',
                                                     transition: 'all 0.2s ease'
                                                 }}
@@ -426,25 +430,28 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
                                         type="number"
                                         min="1"
                                         max="100"
-                                        placeholder="Custom"
+                                        placeholder="#"
+                                        className={`${dashboardStyles.studyInputBase} ${dashboardStyles.studyNumberInput}`}
                                         value={typeof cardCount === 'number' && ![5, 10, 25].includes(cardCount) ? cardCount : ''}
                                         onChange={(e) => {
                                             const val = parseInt(e.target.value);
                                             if (!isNaN(val) && val > 0) setCardCount(val);
                                             else if (e.target.value === '') setCardCount('auto');
                                         }}
-                                        style={{
-                                            width: '80px',
-                                            padding: '0.4rem',
-                                            borderRadius: '8px',
-                                            border: '1px solid var(--color-border)',
-                                            background: 'var(--color-bg-secondary)',
-                                            color: 'var(--color-text-main)',
-                                            fontSize: '0.9rem',
-                                            textAlign: 'center'
-                                        }}
                                     />
                                 </div>
+                            </div>
+
+                            <div className={dashboardStyles.studyFormGroup}>
+                                <label className={dashboardStyles.studyLabel}>
+                                    <Sparkles size={16} /> Custom Instructions (Optional)
+                                </label>
+                                <textarea
+                                    className={`${dashboardStyles.studyInputBase} ${dashboardStyles.studyTextarea}`}
+                                    placeholder="e.g. Focus on vocabulary, include specific dates, or make questions harder..."
+                                    value={customInstructions}
+                                    onChange={(e) => setCustomInstructions(e.target.value)}
+                                />
                             </div>
                             {/* Only show generate if we have absolutely no cards, not just filtered ones */}
                             {flashcards.length === 0 && (
