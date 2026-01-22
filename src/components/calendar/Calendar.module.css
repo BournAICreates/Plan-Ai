@@ -77,6 +77,24 @@
     background: var(--color-bg-surface);
 }
 
+@media (max-width: 768px) {
+    .container {
+        overflow-x: auto;
+        /* Allow horizontal scroll */
+    }
+
+    .grid {
+        min-width: 800px;
+        /* Force minimum width to prevent smushing */
+        /* grid-template-columns is already 1fr, but with min-width container/grid it works */
+    }
+
+    .dayCell {
+        min-height: 100px;
+        /* Slightly shorter on mobile */
+    }
+}
+
 .dayHeader {
     padding: 1rem 0;
     text-align: center;

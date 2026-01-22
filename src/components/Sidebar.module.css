@@ -122,11 +122,23 @@
     display: none;
 }
 
+/* Mobile state class - defined at root for reliability */
+.open {
+    transform: translateX(0) !important;
+}
+
 @media (max-width: 768px) {
     .hamburger {
         display: flex;
         align-items: center;
         justify-content: center;
+        background: var(--color-bg-surface);
+        /* Ensure visible bg */
+        color: var(--color-text-main);
+        /* Ensure visible icon */
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        /* Lift it up */
+        border: 1px solid var(--color-border);
     }
 
     .sidebar {
@@ -135,19 +147,20 @@
         top: 0;
         bottom: 0;
         transform: translateX(-100%);
-        z-index: 99;
-        /* Below hamburger but above content */
+        z-index: 2000;
+        /* Extremely high z-index to be above everything */
         width: 280px;
-        /* Slightly wider ease */
         background: var(--color-bg-surface);
-        /* Solid bg for mobile drawer */
         border-right: 1px solid var(--color-border);
         box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
     }
 
+    /* We use the .open class combined with sidebar in JSX, but here we can target it specifically */
     .sidebar.open {
         transform: translateX(0);
     }
+
+
 
     .overlay {
         display: block;
