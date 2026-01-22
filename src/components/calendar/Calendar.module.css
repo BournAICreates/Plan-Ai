@@ -1,91 +1,108 @@
+/* Calendar.module.css */
+
 .container {
     height: 100%;
     display: flex;
     flex-direction: column;
     background: var(--color-bg-surface);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
+    border-radius: 24px;
+    /* More rounded */
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 10px -2px rgba(0, 0, 0, 0.01);
+    /* Premium soft shadow */
+    border: 1px solid var(--color-border);
     overflow: hidden;
-    animation: fadeIn 0.5s ease-out;
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+/* Header Section */
 .header {
-    padding: 1.5rem;
+    padding: 1.5rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--color-border);
     background: var(--color-bg-surface);
+    position: relative;
+    z-index: 10;
 }
 
 .monthNavigation {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 1.5rem;
-    width: 100%;
+    gap: 1rem;
 }
 
 .monthTitle {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--color-text-main);
-    letter-spacing: -0.02em;
-    min-width: 200px;
+    letter-spacing: -0.03em;
+    min-width: 220px;
     text-align: center;
+    font-feature-settings: "tnum";
 }
 
 .navBtn {
-    padding: 0.5rem;
+    width: 36px;
+    height: 36px;
     color: var(--color-text-muted);
-    border-radius: var(--radius-full);
-    transition: all 0.2s;
+    border-radius: 12px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-bg-subtle);
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
 }
 
 .navBtn:hover {
     color: var(--color-text-main);
-    background: var(--color-bg-subtle-hover, rgba(0, 0, 0, 0.05));
-    transform: scale(1.1);
+    background: var(--color-bg-subtle, rgba(0, 0, 0, 0.05));
+    border-color: var(--color-border);
+    transform: translateY(-1px);
 }
 
+.navBtn:active {
+    transform: translateY(0);
+}
+
+/* Grid Layout */
 .grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     flex: 1;
     overflow-y: auto;
+    background: var(--color-bg-surface);
 }
 
 .dayHeader {
-    padding: 1rem;
+    padding: 1rem 0;
     text-align: center;
     font-weight: 600;
-    color: var(--color-text-muted);
+    color: var(--color-text-tertiary, #9ca3af);
     border-bottom: 1px solid var(--color-border);
-    border-right: 1px solid var(--color-bg-subtle);
-    background: var(--color-bg-subtle);
-    font-size: 0.875rem;
+    border-right: 1px solid transparent;
+    /* Cleaner look without vertical header lines */
+    background: var(--color-bg-surface);
+    font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.dayHeader:last-child {
-    border-right: none;
+    letter-spacing: 0.1em;
 }
 
 .dayCell {
     min-height: 140px;
     border-right: 1px solid var(--color-border);
     border-bottom: 1px solid var(--color-border);
-    padding: 0.75rem;
+    padding: 0.5rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    transition: background-color var(--duration-fast);
+    gap: 4px;
+    transition: background-color 0.2s ease;
     position: relative;
+    cursor: pointer;
+    overflow: hidden;
 }
 
 .dayCell:nth-child(7n) {
@@ -93,85 +110,148 @@
 }
 
 .dayCell:hover {
-    background-color: var(--color-bg-subtle);
+    background-color: var(--color-bg-subtle, #f9fafb);
 }
 
 .disabled {
-    background-color: var(--color-bg-main);
-    color: var(--color-text-faint);
+    background-color: var(--color-bg-canvas, #f3f4f6);
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0, 0, 0, 0.01) 10px, rgba(0, 0, 0, 0.01) 20px);
+    cursor: default;
+}
+
+.disabled .dayNumber {
+    color: var(--color-text-disabled);
+    opacity: 0.5;
 }
 
 .today {
-    background-color: var(--color-primary-subtle);
+    background-color: var(--color-bg-surface);
 }
 
 .dayNumber {
-    font-size: 0.875rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    margin-bottom: 0.25rem;
-    width: 24px;
-    height: 24px;
+    margin-bottom: 0.5rem;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
+    border-radius: 10px;
+    color: var(--color-text-secondary);
+    transition: all 0.2s;
 }
 
 .today .dayNumber {
-    background-color: var(--color-primary);
+    background: var(--color-primary);
     color: white;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
 }
 
+/* Event List Container & Scrollbar */
+.eventsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    overflow-y: hidden;
+    padding-right: 2px;
+}
+
+.dayCell:hover .eventsContainer {
+    overflow-y: auto;
+}
+
+.eventsContainer::-webkit-scrollbar {
+    width: 4px;
+}
+
+.eventsContainer::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.eventsContainer::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 10px;
+}
+
+.eventsContainer::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-tertiary);
+}
+
+/* Event Pills */
 .eventPill {
     font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--radius-sm);
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    /* slightly tighter radius */
     background-color: var(--color-primary-subtle);
     color: var(--color-primary);
     font-weight: 600;
     border-left: 3px solid var(--color-primary);
-    transition: transform var(--duration-fast);
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.5rem;
+    position: relative;
+    user-select: none;
+    line-height: 1.4;
 }
 
 .eventPill:hover {
-    transform: translateY(-1px);
-    filter: brightness(0.95);
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    z-index: 5;
 }
 
-/* Specific event types */
+/* Specific event types styling */
 .typeWork {
-    background-color: var(--color-primary-subtle);
-    color: var(--color-primary);
-    border-left-color: var(--color-primary);
+    background-color: rgba(37, 99, 235, 0.08);
+    color: #2563eb;
+    border-left-color: #2563eb;
 }
 
 .typePersonal {
-    background-color: var(--color-success-bg);
-    color: var(--color-success);
-    border-left-color: var(--color-success);
+    background-color: rgba(16, 185, 129, 0.08);
+    color: #059669;
+    border-left-color: #059669;
 }
 
 .typeMeeting {
-    background-color: var(--color-warning-bg);
-    color: var(--color-warning);
-    border-left-color: var(--color-warning);
+    background-color: rgba(245, 158, 11, 0.08);
+    color: #d97706;
+    border-left-color: #d97706;
 }
 
+.typeExternal {
+    background-color: rgba(124, 58, 237, 0.08);
+    color: #7c3aed;
+    border-left-color: #7c3aed;
+    background-image: repeating-linear-gradient(45deg,
+            transparent,
+            transparent 6px,
+            rgba(124, 58, 237, 0.03) 6px,
+            rgba(124, 58, 237, 0.03) 12px);
+}
+
+/* Buttons */
 .deleteBtn {
     opacity: 0;
     color: currentColor;
     background: transparent;
     border: none;
-    font-size: 1rem;
-    line-height: 0.5;
+    font-size: 1.1rem;
+    line-height: 1;
     cursor: pointer;
-    padding: 0 2px;
-    border-radius: 2px;
-    transition: opacity 0.2s, background 0.2s;
+    padding: 2px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .eventPill:hover .deleteBtn {
@@ -181,4 +261,194 @@
 .deleteBtn:hover {
     opacity: 1 !important;
     background: rgba(0, 0, 0, 0.1);
+}
+
+/* Subscribe Button */
+.subscribeBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, var(--color-primary), #1e40af);
+    /* Deeper gradient */
+    color: white;
+    padding: 0.65rem 1.2rem;
+    border-radius: 12px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1);
+}
+
+.subscribeBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -2px rgba(37, 99, 235, 0.1);
+    filter: brightness(1.1);
+}
+
+.subscribeBtn:active {
+    transform: translateY(0);
+}
+
+/* Modal Styling - Shared */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    /* Stronger blur for premium feel */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modalContent {
+    background: var(--color-bg-surface);
+    border-radius: 24px;
+    width: 90%;
+    max-width: 550px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+    animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modalHeader {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--color-bg-surface);
+}
+
+.modalTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.closeBtn {
+    background: rgba(0, 0, 0, 0.05);
+    /* Subtle background circle */
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.closeBtn:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: var(--color-text-main);
+}
+
+.modalBody {
+    padding: 2rem;
+}
+
+/* Form Elements */
+.formGroup {
+    margin-bottom: 1.5rem;
+}
+
+.label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+    color: var(--color-text-secondary);
+}
+
+.input,
+select,
+textarea {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    background: var(--color-bg-input, #fff);
+    color: var(--color-text-main);
+    font-family: inherit;
+}
+
+.input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px var(--color-primary-fade, rgba(59, 130, 246, 0.1));
+}
+
+.submitBtn {
+    width: 100%;
+    padding: 1rem;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.submitBtn:hover {
+    background: var(--color-primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Subscription List specifics */
+.subscriptionList {
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-top: 1rem;
+}
+
+.subscriptionItem {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--color-bg-surface);
+}
+
+.subscriptionItem:last-child {
+    border-bottom: none;
 }
