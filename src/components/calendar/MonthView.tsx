@@ -24,7 +24,7 @@ export function MonthView() {
     const handleNextMonth = () => setViewDate(addMonths(viewDate, 1));
 
     const days = eachDayOfInterval({ start: startDate, end: endDate });
-    const { events, importedEvents, fetchSubscriptions, addEvent, updateEvent, deleteEvent, loadingImported, syncError } = useEventStore();
+    const { events, importedEvents, subscriptions, fetchSubscriptions, addEvent, updateEvent, deleteEvent, loadingImported, syncError } = useEventStore();
     const { user } = useAuth();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -94,7 +94,7 @@ export function MonthView() {
     };
 
     const getEventTypeClass = (type: string, isExternal?: boolean) => {
-        if (isExternal) return styles.typeExternal || styles.typePersonal;
+        if (isExternal) return ''; // We will handle external styles inline
         switch (type) {
             case 'work': return styles.typeWork;
             case 'personal': return styles.typePersonal;
@@ -160,34 +160,44 @@ export function MonthView() {
                                     className={styles.eventsContainer}
                                 // Removed stopPropagation so clicking empty space triggers day click
                                 >
-                                    {dayEvents.map((e) => (
-                                        <div
-                                            key={e.id}
-                                            className={`${styles.eventPill} ${getEventTypeClass(e.type, e.isExternal)}`}
-                                            title={`${e.title}${e.description ? '\n' + e.description : ''}`}
-                                            onClick={(ev) => {
-                                                ev.stopPropagation();
-                                                if (e.isExternal) {
-                                                    handleDayClick(day);
-                                                } else {
-                                                    handleEventClick(e);
-                                                }
-                                            }}
-                                        >
-                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                                                {format(e.start, 'h:mm')} {e.title}
-                                            </span>
-                                            {!e.isExternal && (
-                                                <button
-                                                    className={styles.deleteBtn}
-                                                    onClick={(ev) => handleDeleteClick(ev, e.id)}
-                                                    title="Delete event"
-                                                >
-                                                    ×
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
+                                    {dayEvents.map((e) => {
+                                        const sub = e.subscriptionId ? subscriptions.find(s => s.id === e.subscriptionId) : null;
+                                        const customStyle = sub ? {
+                                            backgroundColor: `${sub.color}20`,
+                                            color: sub.color,
+                                            borderLeftColor: sub.color
+                                        } : {};
+
+                                        return (
+                                            <div
+                                                key={e.id}
+                                                className={`${styles.eventPill} ${getEventTypeClass(e.type, e.isExternal)}`}
+                                                style={customStyle}
+                                                title={`${e.title}${e.description ? '\n' + e.description : ''}`}
+                                                onClick={(ev) => {
+                                                    ev.stopPropagation();
+                                                    if (e.isExternal) {
+                                                        handleDayClick(day);
+                                                    } else {
+                                                        handleEventClick(e);
+                                                    }
+                                                }}
+                                            >
+                                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                                    {format(e.start, 'h:mm')} {e.title}
+                                                </span>
+                                                {!e.isExternal && (
+                                                    <button
+                                                        className={styles.deleteBtn}
+                                                        onClick={(ev) => handleDeleteClick(ev, e.id)}
+                                                        title="Delete event"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         );

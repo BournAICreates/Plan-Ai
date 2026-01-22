@@ -13,4 +13,5 @@ export interface CalendarSubscription {
     url: string;
     name: string;
     color?: string;
+    lastError?: string | null;
 }

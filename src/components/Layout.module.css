@@ -15,10 +15,13 @@
 
 @media (max-width: 768px) {
     .container {
-        flex-direction: column;
+        /* Sidebar becomes fixed, so direction doesn't block it, but usually row is fine since sidebar is out of flow */
+        flex-direction: row;
     }
 
     .main {
-        padding: 1rem;
+        padding: 4rem 1rem 1rem 1rem;
+        /* Top padding for hamburger */
+        width: 100%;
     }
 }

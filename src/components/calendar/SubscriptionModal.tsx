@@ -1,21 +1,36 @@
-
 import { useState } from 'react';
-import { X, Trash2, Calendar, AlertTriangle } from 'lucide-react';
+import { X, Trash2, Calendar, AlertTriangle, Check } from 'lucide-react';
 import { useEventStore } from '../../store/useEventStore';
 import { useAuth } from '../../contexts/AuthContext';
-import styles from './Calendar.module.css'; // We'll reuse or add styles
+import styles from './Calendar.module.css';
 
 interface SubscriptionModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
+const PRESET_COLORS = [
+    '#ef4444', // Red
+    '#f97316', // Orange
+    '#f59e0b', // Amber
+    '#10b981', // Emerald
+    '#06b6d4', // Cyan
+    '#3b82f6', // Blue
+    '#6366f1', // Indigo
+    '#8b5cf6', // Violet
+    '#ec4899', // Pink
+    '#64748b'  // Slate
+];
+
 export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
     const { user } = useAuth();
-    const { subscriptions, addSubscription, removeSubscription, loadingImported, importedEvents } = useEventStore();
+    const { subscriptions, addSubscription, removeSubscription, updateSubscription, loadingImported, importedEvents } = useEventStore();
     const [url, setUrl] = useState('');
     const [name, setName] = useState('');
     const [error, setError] = useState('');
+
+    // State for editing a subscription
+    const [editingSubId, setEditingSubId] = useState<string | null>(null);
 
     if (!isOpen) return null;
 
@@ -24,7 +39,7 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
         if (!user || !url || !name) return;
 
         try {
-            await addSubscription(user.uid, url, name);
+            await addSubscription(user.uid, url, name); // removed color arg, defaults will be used
             setUrl('');
             setName('');
             setError('');
@@ -34,12 +49,27 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
         }
     };
 
+    const handleUpdateColor = async (subId: string, newColor: string) => {
+        if (!user) return;
+        await updateSubscription(user.uid, subId, { color: newColor });
+        setEditingSubId(null);
+    };
+
     return (
         <div className={styles.modalOverlay} onClick={onClose}>
             <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
                 <div className={styles.modalHeader}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div className={styles.subIconWrapper} style={{ width: '48px', height: '48px', background: 'var(--color-primary-subtle)', color: 'var(--color-primary)' }}>
+                        <div className={styles.subIconWrapper} style={{
+                            width: '48px',
+                            height: '48px',
+                            background: 'var(--color-primary-subtle)',
+                            color: 'var(--color-primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '12px'
+                        }}>
                             <Calendar size={24} />
                         </div>
                         <div>
@@ -78,6 +108,7 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
                                 required
                             />
                         </div>
+
                         <div className={styles.formGroup}>
                             <label className={styles.label}>Public URL</label>
                             <input
@@ -95,6 +126,7 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
                                 required
                             />
                         </div>
+
                         {error && (
                             <div style={{
                                 color: 'var(--color-error)',
@@ -131,52 +163,116 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
                             <div className={styles.subscriptionList}>
                                 {subscriptions.map(sub => {
                                     const eventCount = importedEvents.filter(e => e.subscriptionId === sub.id).length;
+                                    const subColor = sub.color || '#34d399';
+                                    const isEditing = editingSubId === sub.id;
+
                                     return (
-                                        <div key={sub.id} className={styles.subscriptionItem}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div className={styles.subIconWrapper} style={{ width: '36px', height: '36px' }}>
-                                                    <Calendar size={18} />
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontWeight: 600, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                        {sub.name}
-                                                        <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '10px', background: eventCount > 0 ? '#d1fae5' : '#fee2e2', color: eventCount > 0 ? '#059669' : '#b91c1c' }}>
-                                                            {eventCount} events
-                                                        </span>
-                                                    </div>
-                                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', maxWidth: '250px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                        {sub.url}
-                                                    </div>
-                                                    {eventCount === 0 && (
-                                                        <div style={{ marginTop: '4px', fontSize: '0.75rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                            <AlertTriangle size={12} />
-                                                            <span>Apple often takes 1-24h to populate new public links.</span>
+                                        <div key={sub.id} className={styles.subscriptionItem} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <button
+                                                        onClick={() => setEditingSubId(isEditing ? null : sub.id)}
+                                                        className={styles.subIconWrapper}
+                                                        style={{
+                                                            width: '36px',
+                                                            height: '36px',
+                                                            background: `${subColor}20`,
+                                                            color: subColor,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            borderRadius: '8px',
+                                                            border: 'none',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                        title="Click to change color"
+                                                    >
+                                                        <Calendar size={18} />
+                                                    </button>
+                                                    <div>
+                                                        <div style={{ fontWeight: 600, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            {sub.name}
+                                                            <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '10px', background: eventCount > 0 ? '#d1fae5' : '#fee2e2', color: eventCount > 0 ? '#059669' : '#b91c1c' }}>
+                                                                {eventCount} events
+                                                            </span>
                                                         </div>
-                                                    )}
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', maxWidth: '250px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                            {sub.url}
+                                                        </div>
+                                                        {sub.lastError && (
+                                                            <div style={{ marginTop: '4px', fontSize: '0.75rem', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                <AlertTriangle size={12} />
+                                                                <span>{sub.lastError}</span>
+                                                            </div>
+                                                        )}
+                                                        {!sub.lastError && eventCount === 0 && (
+                                                            <div style={{ marginTop: '4px', fontSize: '0.75rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                <AlertTriangle size={12} />
+                                                                <span>Apple often takes 1-24h to populate new public links.</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
+                                                <button
+                                                    onClick={() => user && removeSubscription(user.uid, sub.id)}
+                                                    style={{
+                                                        color: 'var(--color-text-muted)',
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        padding: '8px',
+                                                        borderRadius: '8px',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.color = '#ef4444';
+                                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.color = 'var(--color-text-muted)';
+                                                        e.currentTarget.style.background = 'none';
+                                                    }}
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
                                             </div>
-                                            <button
-                                                onClick={() => user && removeSubscription(user.uid, sub.id)}
-                                                style={{
-                                                    color: 'var(--color-text-muted)',
-                                                    background: 'none',
-                                                    border: 'none',
-                                                    cursor: 'pointer',
-                                                    padding: '8px',
+
+                                            {isEditing && (
+                                                <div style={{
+                                                    marginTop: '12px',
+                                                    padding: '12px',
+                                                    background: 'var(--color-bg-canvas)',
                                                     borderRadius: '8px',
-                                                    transition: 'all 0.2s'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.color = '#ef4444';
-                                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.color = 'var(--color-text-muted)';
-                                                    e.currentTarget.style.background = 'none';
-                                                }}
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
+                                                    display: 'flex',
+                                                    gap: '8px',
+                                                    flexWrap: 'wrap',
+                                                    animation: 'fadeIn 0.2s ease'
+                                                }}>
+                                                    {PRESET_COLORS.map((c) => (
+                                                        <button
+                                                            key={c}
+                                                            type="button"
+                                                            onClick={() => handleUpdateColor(sub.id, c)}
+                                                            style={{
+                                                                width: '24px',
+                                                                height: '24px',
+                                                                borderRadius: '50%',
+                                                                background: c,
+                                                                border: subColor === c ? '2px solid var(--color-bg-surface)' : '2px solid transparent',
+                                                                boxShadow: subColor === c ? `0 0 0 2px ${c}` : 'none',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                color: 'white',
+                                                                transition: 'transform 0.2s'
+                                                            }}
+                                                        >
+                                                            {subColor === c && <Check size={12} strokeWidth={3} />}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}

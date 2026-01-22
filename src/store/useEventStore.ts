@@ -21,13 +21,16 @@ interface EventState {
     syncError: string | null;
     lastSync: Date | null;
 
+    userId: string | null;
+
     subscribe: (uid: string) => void;
     addEvent: (uid: string, event: Omit<CalendarEvent, 'id'>) => Promise<void>;
     updateEvent: (uid: string, id: string, event: Partial<Omit<CalendarEvent, 'id'>>) => Promise<void>;
     deleteEvent: (uid: string, id: string) => Promise<void>;
 
     // Subscription Actions
-    addSubscription: (uid: string, url: string, name: string) => Promise<void>;
+    addSubscription: (uid: string, url: string, name: string, color?: string) => Promise<void>;
+    updateSubscription: (uid: string, subId: string, data: Partial<CalendarSubscription>) => Promise<void>;
     removeSubscription: (uid: string, subId: string) => Promise<void>;
     fetchSubscriptions: (uid: string) => Promise<void>;
     refreshImportedEvents: () => Promise<void>;
@@ -44,12 +47,13 @@ export const useEventStore = create<EventState>((set, get) => ({
     loadingImported: false,
     syncError: null,
     lastSync: null,
+    userId: null,
 
     subscribe: (uid: string) => {
         const { unsubscribe } = get();
         if (unsubscribe) unsubscribe();
 
-        set({ loading: true });
+        set({ loading: true, userId: uid });
 
         const q = query(collection(db, `users/${uid}/events`), orderBy('start', 'asc'));
 
@@ -89,12 +93,12 @@ export const useEventStore = create<EventState>((set, get) => ({
     },
 
     // Subscription implementations
-    addSubscription: async (uid, url, name) => {
+    addSubscription: async (uid, url, name, color = '#34d399') => {
         const subData: CalendarSubscription = {
             id: '', // Will be set by firestore loop or we let firestore generate it
             url,
             name,
-            color: '#34d399' // default color
+            color
         };
 
         await addDoc(collection(db, `users/${uid}/subscriptions`), {
@@ -105,6 +109,12 @@ export const useEventStore = create<EventState>((set, get) => ({
         });
 
         // Refresh list
+        get().fetchSubscriptions(uid);
+    },
+
+    updateSubscription: async (uid, subId, data) => {
+        const subRef = doc(db, `users/${uid}/subscriptions`, subId);
+        await updateDoc(subRef, data);
         get().fetchSubscriptions(uid);
     },
 
@@ -135,7 +145,7 @@ export const useEventStore = create<EventState>((set, get) => ({
     },
 
     refreshImportedEvents: async () => {
-        const { subscriptions } = get();
+        const { subscriptions, userId } = get();
         if (subscriptions.length === 0) {
             set({ importedEvents: [], loadingImported: false });
             return;
@@ -153,14 +163,25 @@ export const useEventStore = create<EventState>((set, get) => ({
             const importPromises = subscriptions.map(async sub => {
                 try {
                     const events = await fetchAndParseCalendar(sub.url);
+                    // Clear error if success
+                    if (sub.lastError && userId) {
+                        const subRef = doc(db, `users/${userId}/subscriptions`, sub.id);
+                        updateDoc(subRef, { lastError: null }).catch(console.error);
+                    }
+
                     return events.map(e => ({
                         ...e,
                         subscriptionId: sub.id,
                         // Ensure we strictly own the ID to behave well in React lists
                         id: `ext-${sub.id}-${e.id}`
                     }));
-                } catch (e) {
+                } catch (e: any) {
                     console.error(`Failed to load subscription ${sub.name}`, e);
+                    // Update subscription with error
+                    if (userId) {
+                        const subRef = doc(db, `users/${userId}/subscriptions`, sub.id);
+                        updateDoc(subRef, { lastError: e.message || 'Failed to sync' }).catch(console.error);
+                    }
                     errorCount++;
                     return [];
                 }
@@ -170,7 +191,7 @@ export const useEventStore = create<EventState>((set, get) => ({
             allEvents = results.flat();
 
             if (errorCount > 0 && errorCount === subscriptions.length) {
-                set({ syncError: 'Failed to sync external calendars. Please check URLs.' });
+                set({ syncError: 'Failed to sync external calendars.' });
             } else if (errorCount > 0) {
                 set({ syncError: 'Some calendars failed to sync.' });
             }

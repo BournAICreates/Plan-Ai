@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 import type { CalendarEvent } from '../types/events';
 
+import { addYears, subMonths } from 'date-fns';
+
 export const parseIcalData = (icalData: string): CalendarEvent[] => {
     try {
         const jcalData = ICAL.parse(icalData);
@@ -10,9 +12,6 @@ export const parseIcalData = (icalData: string): CalendarEvent[] => {
 
         // Debug components
         try {
-            // Accessing internal storage for debug if public API fails, 
-            // but comp.jCal[2] is usually the children array in jCal format.
-            // Safer to use public API:
             if (comp.getAllSubcomponents) {
                 const allSubs = comp.getAllSubcomponents();
                 const subNames = allSubs.map((c: any) => c.name);
@@ -22,31 +21,72 @@ export const parseIcalData = (icalData: string): CalendarEvent[] => {
             console.warn('[Calendar] Failed to list subcomponents', e);
         }
 
+        // Get both events and tasks
         const vevents = comp.getAllSubcomponents('vevent');
+        const vtodos = comp.getAllSubcomponents('vtodo');
+        const allComps = [...vevents, ...vtodos];
 
-        console.log(`[Calendar] Parsed ${vevents.length} events from iCal source`);
+        console.log(`[Calendar] Parsed ${vevents.length} events and ${vtodos.length} tasks from iCal source`);
 
-        return vevents.map((vevent: any) => {
-            const event = new ICAL.Event(vevent);
+        const parsedEvents: CalendarEvent[] = [];
 
-            // Handle dates
-            let startDate = event.startDate.toJSDate();
-            // let endDate = event.endDate.toJSDate(); // Unused for now
+        // Define expansion window: 6 months back to 1 year forward
+        const now = new Date();
+        const rangeStart = subMonths(now, 6);
+        const rangeEnd = addYears(now, 1);
+        const rangeStartIcal = ICAL.Time.fromJSDate(rangeStart);
+        const rangeEndIcal = ICAL.Time.fromJSDate(rangeEnd);
 
-            // Handle title and description
+        allComps.forEach((item: any) => {
+            const event = new ICAL.Event(item);
+
+            // Skip invalid items without start date (unless todo has due date logic, but keeping simple for now)
+            if (!event.startDate) return;
+
             const title = event.summary || 'Untitled Event';
             const description = event.description || '';
             const location = event.location || '';
-
-            return {
-                id: `imported-${uuidv4()}`, // Temporary ID for display
+            const baseEvent = {
                 title: title,
-                start: startDate,
-                type: 'personal', // Default to personal for imported
+                type: 'personal' as const,
                 description: [description, location].filter(Boolean).join('\n'),
-                isExternal: true // Flag to identify external events
-            } as CalendarEvent & { isExternal?: boolean };
+                isExternal: true
+            };
+
+            if (event.isRecurring()) {
+                const iterator = event.iterator();
+                let next;
+                let count = 0;
+                const MAX_RECURRENCES = 365; // Safety limit
+
+                while ((next = iterator.next())) {
+                    if (count > MAX_RECURRENCES) break;
+
+                    // Optimization: stop if we are past range
+                    if (next.compare(rangeEndIcal) > 0) break;
+
+                    // Skip if before range
+                    if (next.compare(rangeStartIcal) < 0) {
+                        continue;
+                    }
+
+                    parsedEvents.push({
+                        id: `imported-${uuidv4()}`,
+                        start: next.toJSDate(),
+                        ...baseEvent
+                    });
+                    count++;
+                }
+            } else {
+                parsedEvents.push({
+                    id: `imported-${uuidv4()}`,
+                    start: event.startDate.toJSDate(),
+                    ...baseEvent
+                });
+            }
         });
+
+        return parsedEvents;
     } catch (error) {
         console.error('Error parsing iCal data:', error);
         return [];
@@ -54,6 +94,12 @@ export const parseIcalData = (icalData: string): CalendarEvent[] => {
 };
 
 export const fetchAndParseCalendar = async (url: string): Promise<CalendarEvent[]> => {
+    // Basic validation for Google Calendar HTML links which are common mistakes
+    if (url.includes('calendar.google.com/calendar') && !url.includes('.ics')) {
+        console.warn(`[Calendar] Detected HTML view URL instead of iCal: ${url}`);
+        throw new Error('This looks like a Google Calendar view link. Please use the "Secret address in iCal format" (ends in .ics) found in your Google Calendar settings.');
+    }
+
     // Ensure protocol is https
     let targetUrl = url.replace(/^webcal:\/\//i, 'https://');
 
