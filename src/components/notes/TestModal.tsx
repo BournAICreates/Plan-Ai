@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { X, Sparkles, Loader2, CheckCircle, XCircle, ArrowRight, RotateCcw, Key, ClipboardPen } from 'lucide-react';
+import { X, Sparkles, Loader2, CheckCircle, XCircle, ArrowRight, RotateCcw, Key, ClipboardPen, Trash2 } from 'lucide-react';
 import styles from '../notes/Notes.module.css';
 import dashboardStyles from '../dashboard/Dashboard.module.css';
 import { useAuth } from '../../contexts/AuthContext';
+import { ConfirmationModal } from '../ui/ConfirmationModal';
 import { useStudyStore, type TestQuestion, type Test } from '../../store/useStudyStore';
 import { generateContent } from '../../lib/gemini';
 import { useSettingsStore } from '../../store/useSettingsStore';
@@ -19,7 +20,7 @@ type TestView = 'intro' | 'generating' | 'taking' | 'results';
 export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalProps) {
     const { user } = useAuth();
     const { geminiApiKeys } = useSettingsStore();
-    const { saveTest, tests, subscribeToTests } = useStudyStore();
+    const { saveTest, deleteTest, tests, subscribeToTests } = useStudyStore();
 
     const [view, setView] = useState<TestView>('intro');
     const [questions, setQuestions] = useState<TestQuestion[]>([]);
@@ -30,6 +31,8 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
     const [score, setScore] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [questionCount, setQuestionCount] = useState<number | 'auto'>('auto');
+    const [customInstructions, setCustomInstructions] = useState('');
+    const [testToDelete, setTestToDelete] = useState<Test | null>(null);
 
     useEffect(() => {
         if (!isOpen) {
@@ -43,6 +46,7 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
             setScore(0);
             setError(null);
             setQuestionCount('auto');
+            setCustomInstructions('');
         } else if (user && noteId) {
             subscribeToTests(user.uid, noteId);
         }
@@ -104,8 +108,8 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
         setInitialAnswers({});
         try {
             const countInstruction = questionCount === 'auto'
-                ? "Do NOT limit the number of questions. Create as many as necessary to absolutely exhaust the source material (e.g., 20, 30, 50+ questions)."
-                : `Create exactly ${questionCount} questions.`;
+                ? "GENERATE AS MANY QUESTIONS AS POSSIBLE to fully cover the content. Do not hold back."
+                : `GENERATE EXACTLY ${questionCount} QUESTIONS. Do not generate more or fewer.`;
 
             const prompt = `Create a comprehensive multiple-choice test based on the following text.
                 Return a JSON array of objects. Each object must have:
@@ -115,10 +119,11 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
                 - "explanation": string (brief explanation of why the correct answer is right)
                 
                 CRITICAL INSTRUCTIONS:
-                1. Cover every single topic, fact, and concept in the text that could possibly be on a test.
-                2. ${countInstruction}
-                3. Include questions on details, definitions, applications, and conceptual understanding.
-                4. Do not include markdown formatting. Just raw JSON.
+                1. ${countInstruction} THIS IS THE MOST IMPORTANT RULE.
+                2. ${customInstructions ? `USER CUSTOM INSTRUCTIONS: ${customInstructions}` : ''}
+                3. If the user custom instructions conflict with rule #1 regarding the number of questions, rule #1 takes precedence.
+                4. Cover every single topic, fact, and concept in the text that could possibly be on a test (subject to the question count limit).
+                5. Do not include markdown formatting. Just raw JSON.
                 
                 Text: ${noteContent}`;
 
@@ -291,10 +296,10 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
 
                     {/* View: Intro / Setup */}
                     {view === 'intro' && (
-                        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100%' }}>
 
                             {!hasKey ? (
-                                <div style={{ width: '100%', maxWidth: '400px' }}>
+                                <div style={{ width: '100%', maxWidth: '400px', margin: 'auto 0' }}>
                                     <Key size={48} style={{ color: 'var(--color-primary)', marginBottom: '1.5rem', margin: '0 auto', display: 'block' }} />
                                     <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: 'var(--color-text-main)' }}>
                                         Gemini API Key Required
@@ -317,7 +322,7 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
                                     </button>
                                 </div>
                             ) : (
-                                <>
+                                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', margin: 'auto 0' }}>
                                     <ClipboardPen size={64} style={{ color: 'var(--color-primary)', marginBottom: '1.5rem' }} />
                                     <h2 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '1rem', color: 'var(--color-text-main)' }}>
                                         Ready to test your knowledge?
@@ -378,6 +383,18 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
                                                 }}
                                             />
                                         </div>
+
+                                        <div className={dashboardStyles.studyFormGroup} style={{ width: '100%', maxWidth: '400px', marginTop: '1rem' }}>
+                                            <label className={dashboardStyles.studyLabel}>
+                                                <Sparkles size={16} /> Custom Instructions (Optional)
+                                            </label>
+                                            <textarea
+                                                className={`${dashboardStyles.studyInputBase} ${dashboardStyles.studyTextarea}`}
+                                                placeholder="e.g. Focus on vocabulary, make questions harder, include clear explanations..."
+                                                value={customInstructions}
+                                                onChange={(e) => setCustomInstructions(e.target.value)}
+                                            />
+                                        </div>
                                     </div>
 
                                     <button
@@ -428,18 +445,28 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
                                                             >
                                                                 Retake
                                                             </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setTestToDelete(test);
+                                                                }}
+                                                                style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--color-error)', background: 'transparent', color: 'var(--color-error)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                                                                title="Delete Test"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                     )}
-                                </>
+                                </div>
                             )}
                         </div>
                     )}
 
-                    {/* View: Generating */}
+                    {/* View: Generating (kept original lines) */}
                     {view === 'generating' && (
                         <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
                             <Loader2 size={48} className="animate-spin" style={{ color: 'var(--color-primary)', marginBottom: '1rem' }} />
@@ -650,6 +677,24 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
 
                 </div>
             </div>
+
+            <ConfirmationModal
+                isOpen={!!testToDelete}
+                onClose={() => setTestToDelete(null)}
+                onConfirm={async () => {
+                    if (user && testToDelete) {
+                        await deleteTest(user.uid, noteId, testToDelete.id, {
+                            score: testToDelete.score || 0,
+                            questionCount: testToDelete.questions.length
+                        });
+                        setTestToDelete(null);
+                    }
+                }}
+                title="Delete Test"
+                message="Are you sure you want to delete this test result? This will affect your overall stats."
+                confirmText="Delete"
+                isDangerous={true}
+            />
         </div>
     );
 }

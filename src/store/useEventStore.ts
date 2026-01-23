@@ -17,6 +17,7 @@ interface EventState {
     // Subscription State
     subscriptions: CalendarSubscription[];
     importedEvents: CalendarEvent[];
+    overrides: Record<string, { color?: string }>;
     loadingImported: boolean;
     syncError: string | null;
     lastSync: Date | null;
@@ -35,6 +36,7 @@ interface EventState {
     fetchSubscriptions: (uid: string) => Promise<void>;
     refreshImportedEvents: () => Promise<void>;
     clearSyncError: () => void;
+    saveOverride: (uid: string, eventId: string, data: { color?: string }) => Promise<void>;
 }
 
 export const useEventStore = create<EventState>((set, get) => ({
@@ -44,6 +46,7 @@ export const useEventStore = create<EventState>((set, get) => ({
 
     subscriptions: [],
     importedEvents: [],
+    overrides: {},
     loadingImported: false,
     syncError: null,
     lastSync: null,
@@ -55,9 +58,9 @@ export const useEventStore = create<EventState>((set, get) => ({
 
         set({ loading: true, userId: uid });
 
-        const q = query(collection(db, `users/${uid}/events`), orderBy('start', 'asc'));
-
-        const unsub = onSnapshot(q, (snapshot) => {
+        // Subscribe to events
+        const qEvents = query(collection(db, `users/${uid}/events`), orderBy('start', 'asc'));
+        const unsubEvents = onSnapshot(qEvents, (snapshot) => {
             const events = snapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
@@ -69,7 +72,29 @@ export const useEventStore = create<EventState>((set, get) => ({
             set({ events, loading: false });
         });
 
-        set({ unsubscribe: unsub });
+        // Subscribe to overrides
+        const qOverrides = query(collection(db, `users/${uid}/overrides`));
+        const unsubOverrides = onSnapshot(qOverrides, (snapshot) => {
+            const overrides: Record<string, { color?: string }> = {};
+            snapshot.docs.forEach(doc => {
+                overrides[doc.id] = doc.data();
+            });
+            set({ overrides });
+        });
+
+        set({
+            unsubscribe: () => {
+                unsubEvents();
+                unsubOverrides();
+            }
+        });
+    },
+
+    saveOverride: async (uid: string, eventId: string, data: { color?: string }) => {
+        const docRef = doc(db, `users/${uid}/overrides`, eventId);
+        // We use setDoc with merge to create or update
+        const { setDoc } = await import('firebase/firestore');
+        await setDoc(docRef, data, { merge: true });
     },
 
     addEvent: async (uid, event) => {

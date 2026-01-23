@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Trash2, Calendar, AlertTriangle, Check } from 'lucide-react';
 import { useEventStore } from '../../store/useEventStore';
 import { useAuth } from '../../contexts/AuthContext';
@@ -7,6 +7,7 @@ import styles from './Calendar.module.css';
 interface SubscriptionModalProps {
     isOpen: boolean;
     onClose: () => void;
+    initialEditingSubId?: string | null;
 }
 
 const PRESET_COLORS = [
@@ -22,7 +23,7 @@ const PRESET_COLORS = [
     '#64748b'  // Slate
 ];
 
-export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
+export function SubscriptionModal({ isOpen, onClose, initialEditingSubId }: SubscriptionModalProps) {
     const { user } = useAuth();
     const { subscriptions, addSubscription, removeSubscription, updateSubscription, loadingImported, importedEvents } = useEventStore();
     const [url, setUrl] = useState('');
@@ -31,6 +32,15 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
 
     // State for editing a subscription
     const [editingSubId, setEditingSubId] = useState<string | null>(null);
+
+    // Effect to set editing sub when prop changes
+    useEffect(() => {
+        if (isOpen && initialEditingSubId) {
+            setEditingSubId(initialEditingSubId);
+        } else if (!isOpen) {
+            setEditingSubId(null);
+        }
+    }, [isOpen, initialEditingSubId]);
 
     if (!isOpen) return null;
 

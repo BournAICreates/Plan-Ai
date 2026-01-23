@@ -70,8 +70,12 @@ export const parseIcalData = (icalData: string): CalendarEvent[] => {
                         continue;
                     }
 
+                    // Create a stable ID for occurences: uid + recurrence-id (or just time)
+                    const recurrenceId = next.convertToZone(ICAL.Timezone.utcTimezone).toString();
+                    const stableId = `${event.uid}_${recurrenceId}`;
+
                     parsedEvents.push({
-                        id: `imported-${uuidv4()}`,
+                        id: stableId,
                         start: next.toJSDate(),
                         ...baseEvent
                     });
@@ -79,7 +83,7 @@ export const parseIcalData = (icalData: string): CalendarEvent[] => {
                 }
             } else {
                 parsedEvents.push({
-                    id: `imported-${uuidv4()}`,
+                    id: event.uid || `generated-${Date.now()}-${Math.random()}`,
                     start: event.startDate.toJSDate(),
                     ...baseEvent
                 });

@@ -48,6 +48,7 @@ interface StudyState {
 
     // Tests Actions
     saveTest: (uid: string, noteId: string, questions: TestQuestion[], score: number) => Promise<void>;
+    deleteTest: (uid: string, noteId: string, testId: string, stats: { score: number, questionCount: number }) => Promise<void>;
 
     // New delete action
     deleteFlashcards: (uid: string, noteId: string) => Promise<void>;
@@ -176,6 +177,19 @@ export const useStudyStore = create<StudyState>((set, get) => ({
             'testStats.totalScore': increment(score),
             'testStats.totalQuestions': increment(questions.length),
             'testStats.testsTaken': increment(1)
+        });
+    },
+
+    deleteTest: async (uid, noteId, testId, stats) => {
+        const testRef = doc(db, `users/${uid}/notes/${noteId}/tests/${testId}`);
+        await writeBatch(db).delete(testRef).commit();
+
+        // Decrement Note Stats
+        const noteRef = doc(db, `users/${uid}/notes/${noteId}`);
+        await updateDoc(noteRef, {
+            'testStats.totalScore': increment(-stats.score),
+            'testStats.totalQuestions': increment(-stats.questionCount),
+            'testStats.testsTaken': increment(-1)
         });
     }
 }));

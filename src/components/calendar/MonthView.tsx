@@ -24,7 +24,7 @@ export function MonthView() {
     const handleNextMonth = () => setViewDate(addMonths(viewDate, 1));
 
     const days = eachDayOfInterval({ start: startDate, end: endDate });
-    const { events, importedEvents, subscriptions, fetchSubscriptions, addEvent, updateEvent, deleteEvent, loadingImported, syncError } = useEventStore();
+    const { events, importedEvents, overrides, subscriptions, fetchSubscriptions, addEvent, updateEvent, deleteEvent, loadingImported, syncError } = useEventStore();
     const { user } = useAuth();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -162,10 +162,15 @@ export function MonthView() {
                                 >
                                     {dayEvents.map((e) => {
                                         const sub = e.subscriptionId ? subscriptions.find(s => s.id === e.subscriptionId) : null;
-                                        const customStyle = sub ? {
-                                            backgroundColor: `${sub.color}20`,
-                                            color: sub.color,
-                                            borderLeftColor: sub.color
+
+                                        // Override Logic
+                                        const overrideColor = overrides[e.id]?.color;
+                                        const subColor = overrideColor || (sub ? sub.color : null);
+
+                                        const customStyle = subColor ? {
+                                            backgroundColor: `${subColor}20`,
+                                            color: subColor,
+                                            borderLeftColor: subColor
                                         } : {};
 
                                         return (
@@ -176,11 +181,7 @@ export function MonthView() {
                                                 title={`${e.title}${e.description ? '\n' + e.description : ''}`}
                                                 onClick={(ev) => {
                                                     ev.stopPropagation();
-                                                    if (e.isExternal) {
-                                                        handleDayClick(day);
-                                                    } else {
-                                                        handleEventClick(e);
-                                                    }
+                                                    handleEventClick(e);
                                                 }}
                                             >
                                                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
