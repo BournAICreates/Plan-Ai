@@ -26,7 +26,7 @@ export function ConfirmationModal({
 
     return (
         <div className={styles.modalOverlay} style={{ zIndex: 10000 }}>
-            <div className={styles.aiModal} style={{ maxWidth: '400px', width: '90%', height: 'auto', maxHeight: 'none', overflow: 'hidden' }}>
+            <div className={styles.aiModal} style={{ maxWidth: '400px', width: '90%', height: 'auto', overflow: 'hidden' }}>
                 <div className={styles.modalHeader} style={{ borderBottom: 'none', paddingBottom: '0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{

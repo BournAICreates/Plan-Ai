@@ -548,6 +548,10 @@
     border: 1px solid var(--color-border);
     overflow: hidden;
     animation: modalSlide 0.3s ease-out;
+    max-height: 90vh;
+    /* Ensure it fits on screen */
+    display: flex;
+    flex-direction: column;
 }
 
 .modalHeader {

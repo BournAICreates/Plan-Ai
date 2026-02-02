@@ -12,6 +12,7 @@ export interface Note {
     updatedAt: Date;
     category?: string;
     folderId?: string;
+    deletedAt?: Date | null;
     testStats?: {
         totalScore: number;
         totalQuestions: number;
@@ -43,6 +44,9 @@ interface NoteState {
     addNote: (uid: string, folderId?: string) => Promise<string>;
     updateNote: (uid: string, id: string, updates: Partial<Note>) => Promise<void>;
     deleteNote: (uid: string, id: string) => Promise<void>;
+    restoreNote: (uid: string, id: string) => Promise<void>;
+    permanentlyDeleteNote: (uid: string, id: string) => Promise<void>;
+    emptyTrash: (uid: string) => Promise<void>;
     resetAllStats: (uid: string) => Promise<void>;
 
     addFolder: (uid: string, name: string) => Promise<string>;
@@ -74,7 +78,8 @@ export const useNoteStore = create<NoteState>((set, get) => ({
                 return {
                     id: doc.id,
                     ...data,
-                    updatedAt: data.updatedAt ? data.updatedAt.toDate() : new Date()
+                    updatedAt: data.updatedAt ? data.updatedAt.toDate() : new Date(),
+                    deletedAt: data.deletedAt ? data.deletedAt.toDate() : null
                 } as Note;
             });
 
@@ -132,7 +137,27 @@ export const useNoteStore = create<NoteState>((set, get) => ({
     },
 
     deleteNote: async (uid, id) => {
+        const noteRef = doc(db, `users/${uid}/notes`, id);
+        await updateDoc(noteRef, {
+            deletedAt: Timestamp.now()
+        });
+    },
+
+    restoreNote: async (uid, id) => {
+        const noteRef = doc(db, `users/${uid}/notes`, id);
+        await updateDoc(noteRef, {
+            deletedAt: null
+        });
+    },
+
+    permanentlyDeleteNote: async (uid, id) => {
         await deleteDoc(doc(db, `users/${uid}/notes`, id));
+    },
+
+    emptyTrash: async (uid) => {
+        const { notes, permanentlyDeleteNote } = get();
+        const trashedNotes = notes.filter(n => n.deletedAt);
+        await Promise.all(trashedNotes.map(n => permanentlyDeleteNote(uid, n.id)));
     },
 
     resetAllStats: async (uid: string) => {

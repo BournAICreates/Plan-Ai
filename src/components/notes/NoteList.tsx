@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { Plus, Trash2, Folder, FolderOpen, ChevronRight, ChevronDown, MoreVertical, Check } from 'lucide-react';
+import { Plus, Trash2, Folder, FolderOpen, ChevronRight, ChevronDown, MoreVertical, Check, RefreshCw, XCircle } from 'lucide-react';
 import { useNoteStore } from '../../store/useNoteStore';
 import { useAuth } from '../../contexts/AuthContext';
 import styles from './Notes.module.css';
@@ -20,7 +20,10 @@ export function NoteList() {
         deleteNote,
         updateNote,
         addFolder,
-        deleteFolder
+        deleteFolder,
+        restoreNote,
+        permanentlyDeleteNote,
+        emptyTrash
     } = useNoteStore();
     const { user } = useAuth();
     const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -31,15 +34,22 @@ export function NoteList() {
 
     // New state for modal
     const [folderToDelete, setFolderToDelete] = useState<{ id: string, name: string } | null>(null);
+    const [confirmEmptyTrash, setConfirmEmptyTrash] = useState(false);
 
-    const filteredNotes = activeFolderId
-        ? notes.filter(n => n.folderId === activeFolderId)
-        : notes;
+    const filteredNotes = activeFolderId === 'trash'
+        ? notes.filter(n => n.deletedAt)
+        : activeFolderId
+            ? notes.filter(n => n.folderId === activeFolderId && !n.deletedAt)
+            : notes.filter(n => !n.deletedAt);
 
     const sortedNotes = [...filteredNotes].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
     const handleAddNote = async () => {
         if (user) {
+            if (activeFolderId === 'trash') {
+                alert("Cannot add notes to trash.");
+                return;
+            }
             await addNote(user.uid, activeFolderId);
         }
     };
@@ -76,10 +86,12 @@ export function NoteList() {
     return (
         <div className={styles.sidebar}>
             <div className={styles.sidebarHeader} style={{ marginBottom: '1rem' }}>
-                <span className={styles.sidebarTitle}>Notes</span>
-                <button onClick={handleAddNote} className={styles.addButton} aria-label="Create note" title="New Note">
-                    <Plus size={20} />
-                </button>
+                <span className={styles.sidebarTitle}>{activeFolderId === 'trash' ? 'Trash' : 'Notes'}</span>
+                {activeFolderId !== 'trash' && (
+                    <button onClick={handleAddNote} className={styles.addButton} aria-label="Create note" title="New Note">
+                        <Plus size={20} />
+                    </button>
+                )}
             </div>
 
             {/* Folders Section */}
@@ -149,6 +161,18 @@ export function NoteList() {
                                 </button>
                             </div>
                         ))}
+
+                        {/* Trash Folder - Only show if there are trashed notes */}
+                        {notes.some(n => n.deletedAt) && (
+                            <div
+                                className={`${styles.folderItem} ${activeFolderId === 'trash' ? styles.activeFolder : ''}`}
+                                onClick={() => setActiveFolder('trash')}
+                                style={{ marginTop: '0.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '0.5rem' }}
+                            >
+                                <Trash2 size={16} />
+                                <span>Trash</span>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -158,7 +182,7 @@ export function NoteList() {
             <div className={styles.noteList}>
                 {sortedNotes.length === 0 && (
                     <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--color-text-faint)', fontSize: '0.9rem' }}>
-                        No notes found in this folder.
+                        {activeFolderId === 'trash' ? 'Trash is empty.' : 'No notes found in this folder.'}
                     </div>
                 )}
                 {sortedNotes.map((note) => (
@@ -186,52 +210,79 @@ export function NoteList() {
                             {/* Context Menu */}
                             {activeMenuNoteId === note.id && (
                                 <div className={styles.menuDropdown} onClick={(e) => e.stopPropagation()}>
-                                    {!movingNoteId ? (
+                                    {activeFolderId === 'trash' ? (
+                                        // Trash Context Menu
                                         <>
                                             <button
                                                 className={styles.menuItem}
-                                                onClick={() => setMovingNoteId(note.id)}
+                                                onClick={() => {
+                                                    if (user) restoreNote(user.uid, note.id);
+                                                    setActiveMenuNoteId(null);
+                                                }}
                                             >
-                                                <Folder size={14} />
-                                                Move to...
+                                                <RefreshCw size={14} />
+                                                Restore Note
                                             </button>
                                             <button
                                                 className={`${styles.menuItem} ${styles.danger}`}
                                                 onClick={() => {
-                                                    if (user) deleteNote(user.uid, note.id);
+                                                    if (user) permanentlyDeleteNote(user.uid, note.id);
                                                     setActiveMenuNoteId(null);
                                                 }}
                                             >
-                                                <Trash2 size={14} />
-                                                Delete Note
+                                                <XCircle size={14} />
+                                                Delete Forever
                                             </button>
                                         </>
                                     ) : (
-                                        <>
-                                            <div style={{ padding: '0.5rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <button onClick={() => setMovingNoteId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><ChevronDown size={14} style={{ transform: 'rotate(90deg)' }} /></button>
-                                                Select Folder
-                                            </div>
-                                            <div className={styles.folderSubmenu}>
-                                                <div
-                                                    className={styles.folderOption}
-                                                    onClick={() => handleMoveNote(note.id, undefined)}
+                                        // Normal Context Menu
+                                        !movingNoteId ? (
+                                            <>
+                                                <button
+                                                    className={styles.menuItem}
+                                                    onClick={() => setMovingNoteId(note.id)}
                                                 >
-                                                    {!note.folderId && <Check size={14} />}
-                                                    <span style={{ marginLeft: !note.folderId ? 0 : '1.4rem' }}>Uncategorized</span>
+                                                    <Folder size={14} />
+                                                    Move to...
+                                                </button>
+                                                <button
+                                                    className={`${styles.menuItem} ${styles.danger}`}
+                                                    onClick={() => {
+                                                        if (user) deleteNote(user.uid, note.id);
+                                                        setActiveMenuNoteId(null);
+                                                    }}
+                                                >
+                                                    <Trash2 size={14} />
+                                                    Delete Note
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div style={{ padding: '0.5rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <button onClick={() => setMovingNoteId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><ChevronDown size={14} style={{ transform: 'rotate(90deg)' }} /></button>
+                                                    Select Folder
                                                 </div>
-                                                {folders.map(f => (
+                                                <div className={styles.folderSubmenu}>
                                                     <div
-                                                        key={f.id}
                                                         className={styles.folderOption}
-                                                        onClick={() => handleMoveNote(note.id, f.id)}
+                                                        onClick={() => handleMoveNote(note.id, undefined)}
                                                     >
-                                                        {note.folderId === f.id && <Check size={14} />}
-                                                        <span style={{ marginLeft: note.folderId === f.id ? 0 : '1.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                                                        {!note.folderId && <Check size={14} />}
+                                                        <span style={{ marginLeft: !note.folderId ? 0 : '1.4rem' }}>Uncategorized</span>
                                                     </div>
-                                                ))}
-                                            </div>
-                                        </>
+                                                    {folders.map(f => (
+                                                        <div
+                                                            key={f.id}
+                                                            className={styles.folderOption}
+                                                            onClick={() => handleMoveNote(note.id, f.id)}
+                                                        >
+                                                            {note.folderId === f.id && <Check size={14} />}
+                                                            <span style={{ marginLeft: note.folderId === f.id ? 0 : '1.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )
                                     )}
                                 </div>
                             )}
@@ -255,6 +306,21 @@ export function NoteList() {
                 title="Delete Folder?"
                 message={`Are you sure you want to delete "${folderToDelete?.name}"? Notes inside will be kept but moved to 'Uncategorized'.`}
                 confirmText="Delete Folder"
+                isDangerous={true}
+            />
+
+            <ConfirmationModal
+                isOpen={confirmEmptyTrash}
+                onClose={() => setConfirmEmptyTrash(false)}
+                onConfirm={async () => {
+                    if (user) {
+                        await emptyTrash(user.uid);
+                        setConfirmEmptyTrash(false);
+                    }
+                }}
+                title="Empty Trash?"
+                message="Are you sure you want to empty the trash? This action cannot be undone."
+                confirmText="Empty Trash"
                 isDangerous={true}
             />
         </div>

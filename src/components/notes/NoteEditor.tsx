@@ -1,8 +1,8 @@
+import { useRef, useState, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
-import { useEffect, useRef, useState } from 'react';
 import { useNoteStore } from '../../store/useNoteStore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettingsStore } from '../../store/useSettingsStore'; // Import settings
@@ -11,10 +11,10 @@ import { extractTextFromImage } from '../../lib/gemini'; // Import AI enhancemen
 import { EditorToolbar } from './EditorToolbar';
 import { FontSize } from '../../extensions/FontSize';
 import styles from './Notes.module.css';
-import { Image as ImageIcon, Loader2 } from 'lucide-react'; // Import icons
+import { Image as ImageIcon, Loader2, RefreshCw, Trash2 } from 'lucide-react'; // Import icons
 
 export function NoteEditor() {
-    const { notes, activeNoteId, updateNote } = useNoteStore();
+    const { notes, activeNoteId, updateNote, restoreNote } = useNoteStore();
     const { user } = useAuth();
     const { geminiApiKeys } = useSettingsStore(); // Get API keys
     const activeNote = notes.find((n) => n.id === activeNoteId);
@@ -22,6 +22,9 @@ export function NoteEditor() {
     const fileInputRef = useRef<HTMLInputElement>(null); // File input ref
     const [isExtracting, setIsExtracting] = useState(false); // Extracting state
     const [statusText, setStatusText] = useState(''); // Status text for loading
+    const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const isTrash = !!activeNote?.deletedAt;
 
     const editor = useEditor({
         extensions: [
@@ -31,9 +34,14 @@ export function NoteEditor() {
             FontSize
         ],
         content: activeNote?.content || '',
+        editable: !isTrash,
         onUpdate: ({ editor }) => {
-            if (activeNoteId && user) {
-                updateNote(user.uid, activeNoteId, { content: editor.getHTML() });
+            if (activeNoteId && user && !isTrash) {
+                // Debounce save to prevent Firestore write exhaustion
+                if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+                saveTimeoutRef.current = setTimeout(() => {
+                    updateNote(user.uid, activeNoteId, { content: editor.getHTML() });
+                }, 1000);
             }
         },
         editorProps: {
@@ -44,12 +52,15 @@ export function NoteEditor() {
     });
 
     useEffect(() => {
-        if (editor && activeNoteId !== lastActiveNoteId.current) {
-            // Force set content only when switching notes
-            editor.commands.setContent(activeNote?.content || '');
-            lastActiveNoteId.current = activeNoteId;
+        if (editor) {
+            if (activeNoteId !== lastActiveNoteId.current) {
+                // Force set content only when switching notes
+                editor.commands.setContent(activeNote?.content || '');
+                lastActiveNoteId.current = activeNoteId;
+            }
+            editor.setEditable(!isTrash);
         }
-    }, [activeNoteId, editor, activeNote]);
+    }, [activeNoteId, editor, activeNote, isTrash]);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0) return;
@@ -129,7 +140,23 @@ export function NoteEditor() {
 
     return (
         <div className={styles.editorContainer}>
-            <EditorToolbar editor={editor} />
+            {isTrash && (
+                <div style={{ background: 'var(--color-bg-tertiary)', padding: '0.75rem 1rem', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--color-text-secondary)' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Trash2 size={16} />
+                        Note is in Trash
+                    </span>
+                    <button
+                        onClick={() => user && restoreNote(user.uid, activeNote.id)}
+                        className={styles.buttonSecondary}
+                        style={{ fontSize: '0.85rem', padding: '0.3rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                        <RefreshCw size={14} />
+                        Restore
+                    </button>
+                </div>
+            )}
+            {!isTrash && <EditorToolbar editor={editor} />}
             <div className={styles.editorHeader} style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
                 <input
                     className={styles.titleInput}
@@ -137,6 +164,7 @@ export function NoteEditor() {
                     onChange={(e) => user && updateNote(user.uid, activeNote.id, { title: e.target.value })}
                     placeholder="Note Title"
                     style={{ flex: 1 }}
+                    disabled={isTrash}
                 />
 
                 {/* Image Upload Input */}
@@ -150,20 +178,16 @@ export function NoteEditor() {
 
                 <button
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={isExtracting}
+                    disabled={isExtracting || isTrash}
                     className={styles.toolbarButton}
                     title="Upload image to extract text"
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '8px', background: 'var(--color-bg-secondary)', color: 'var(--color-text-main)', border: '1px solid var(--color-border)', cursor: isExtracting ? 'wait' : 'pointer', opacity: isExtracting ? 0.7 : 1 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '8px', background: 'var(--color-bg-secondary)', color: 'var(--color-text-main)', border: '1px solid var(--color-border)', cursor: (isExtracting || isTrash) ? 'default' : 'pointer', opacity: (isExtracting || isTrash) ? 0.7 : 1 }}
                 >
                     {isExtracting ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18} />}
                     <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{isExtracting ? (statusText || 'Processing...') : 'Scan Image'}</span>
                 </button>
-
-
             </div>
             <EditorContent editor={editor} className={styles.editorContent} />
-
-
         </div>
     );
 }

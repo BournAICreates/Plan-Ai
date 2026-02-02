@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNoteStore } from '../store/useNoteStore';
-import { ClipboardPen, ArrowRight, Trophy, Target, TrendingUp, RotateCcw } from 'lucide-react';
+import { ClipboardPen, ArrowRight, Trophy, Target, TrendingUp, RotateCcw, Puzzle } from 'lucide-react';
 import styles from '../components/dashboard/Dashboard.module.css';
 import { TestModal } from '../components/notes/TestModal';
+import { MatchingModal } from '../components/notes/MatchingModal'; // Import MatchingModal
 import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -11,6 +12,7 @@ export function TestsPage() {
     const { user } = useAuth();
     const { notes, resetAllStats } = useNoteStore();
     const [selectedNote, setSelectedNote] = useState<{ id: string, content: string } | null>(null);
+    const [selectedMatchingNote, setSelectedMatchingNote] = useState<{ id: string, content: string } | null>(null); // State for matching
 
     const sortedNotes = [...notes].sort((a, b) =>
         (b.updatedAt?.getTime() || 0) - (a.updatedAt?.getTime() || 0)
@@ -160,7 +162,29 @@ export function TestsPage() {
                                     {note.updatedAt?.toLocaleDateString()}
                                 </span>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button className={styles.iconButton} style={{ borderRadius: 'var(--radius-full)', background: 'var(--color-primary-bg)', color: 'var(--color-primary)' }}>
+                                    {/* Match Game Button */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedMatchingNote({ id: note.id, content: note.content });
+                                        }}
+                                        className={styles.iconButton}
+                                        style={{ borderRadius: 'var(--radius-full)', background: 'var(--color-bg-secondary)', color: 'var(--color-text-muted)' }}
+                                        title="Play Matching Game"
+                                    >
+                                        <Puzzle size={16} />
+                                    </button>
+
+                                    {/* Test Button */}
+                                    <button
+                                        className={styles.iconButton}
+                                        style={{ borderRadius: 'var(--radius-full)', background: 'var(--color-primary-bg)', color: 'var(--color-primary)' }}
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // Explicitly stop propagation to be safe, though parent click does same
+                                            setSelectedNote({ id: note.id, content: note.content });
+                                        }}
+                                        title="Take Test"
+                                    >
                                         <ArrowRight size={16} />
                                     </button>
                                 </div>
@@ -181,6 +205,13 @@ export function TestsPage() {
                 onClose={() => setSelectedNote(null)}
                 noteId={selectedNote?.id || ''}
                 noteContent={selectedNote?.content || ''}
+            />
+
+            <MatchingModal
+                isOpen={!!selectedMatchingNote}
+                onClose={() => setSelectedMatchingNote(null)}
+                noteId={selectedMatchingNote?.id || ''}
+                noteContent={selectedMatchingNote?.content || ''}
             />
 
             <ConfirmationModal
