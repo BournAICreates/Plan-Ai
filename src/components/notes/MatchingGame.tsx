@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import type { Flashcard } from '../../store/useStudyStore';
 import dashboardStyles from '../dashboard/Dashboard.module.css';
 import { Check, RotateCcw, Timer, Trophy, XCircle, ArrowRight, Layers } from 'lucide-react';
