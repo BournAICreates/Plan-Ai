@@ -1,5 +1,5 @@
 import { Quote } from 'lucide-react';
-import styles from './Dashboard.module.css';
+import styles from './Widgets.module.css';
 
 const QUOTES = [
     { text: "I can do all things through Christ who strengthens me.", author: "Philippians 4:13" },

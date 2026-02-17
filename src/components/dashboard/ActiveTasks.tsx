@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useTaskStore } from '../../store/useTaskStore';
 import { useAuth } from '../../contexts/AuthContext';
-import { Circle, CheckCircle2, GripVertical } from 'lucide-react';
+import { CheckCircle2, GripVertical } from 'lucide-react';
 import { CustomSelect } from '../ui/CustomSelect';
-import styles from './Dashboard.module.css';
+import styles from '../tasks/Tasks.module.css';
 
 export function ActiveTasks() {
     const { tasks, toggleStatus, addTask, updateTaskOrder } = useTaskStore();
@@ -171,7 +171,7 @@ export function ActiveTasks() {
                         value={newTaskTitle}
                         onChange={(e) => setNewTaskTitle(e.target.value)}
                         placeholder={`Add ${activeTab} task...`}
-                        className={styles.taskInput}
+                        className={styles.addInput}
                         style={{ flex: 1 }}
                         autoFocus
                     />
@@ -189,7 +189,7 @@ export function ActiveTasks() {
                 </form>
             )}
 
-            <div className={`${styles.list} ${styles.scrollableList}`}>
+            <div className={styles.taskList} style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
                 {activeTasks.length === 0 && !showAdd && (
                     <p className={styles.eventType} style={{ textAlign: 'center', opacity: 0.5, marginTop: '20px' }}>
                         No items in {activeTab}.
@@ -198,10 +198,7 @@ export function ActiveTasks() {
                 {activeTasks.map((task) => {
                     const isDone = task.status === 'done';
                     const isKilling = killingTaskIds.has(task.id);
-                    const priorityColor =
-                        task.priority === 'urgent' ? 'var(--color-error)' :
-                            task.priority === 'medium' ? 'var(--color-warning)' :
-                                'var(--color-success)';
+
 
                     return (
                         <div
@@ -215,32 +212,26 @@ export function ActiveTasks() {
                                 opacity: isDone ? 0.6 : 1,
                                 cursor: 'grab',
                                 border: draggedTaskId === task.id ? '1px dashed var(--color-primary)' : undefined,
-                                background: draggedTaskId === task.id ? 'var(--color-bg-subtle)' : undefined
+                                background: draggedTaskId === task.id ? 'var(--color-bg-subtle)' : undefined,
+                                padding: '0.75rem 1rem' // Override for tighter list
                             }}
                         >
-                            <div style={{ color: 'var(--color-text-muted)', marginRight: '6px', cursor: 'grab', display: 'flex', alignItems: 'center' }}>
-                                <GripVertical size={14} />
+                            <div className={styles.dragHandle}>
+                                <GripVertical size={16} />
                             </div>
 
                             <button
-                                className={styles.taskCheck}
+                                className={`${styles.checkbox} ${(isDone || isKilling) ? styles.checked : ''}`}
                                 onClick={() => handleToggle(task)}
                             >
-                                {isDone || isKilling ? <CheckCircle2 size={18} style={{ color: 'var(--color-success)' }} /> : <Circle size={18} />}
+                                {(isDone || isKilling) && <CheckCircle2 size={16} color="white" />}
                             </button>
-                            <span style={{ textDecoration: isDone ? 'line-through' : 'none', color: isDone ? 'var(--color-text-muted)' : 'inherit', transition: 'all 0.3s', flex: 1 }}>
+
+                            <span className={`${styles.taskTitle} ${isDone ? styles.completed : ''}`} style={{ flex: 1, fontSize: '0.95rem' }}>
                                 {task.title}
                             </span>
 
-                            <span style={{
-                                fontSize: '0.65rem',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                border: `1px solid ${priorityColor}`,
-                                color: priorityColor,
-                                textTransform: 'capitalize',
-                                marginLeft: '8px'
-                            }}>
+                            <span className={`${styles.priority} ${styles[task.priority]}`}>
                                 {task.priority}
                             </span>
                         </div>

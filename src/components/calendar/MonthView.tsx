@@ -65,7 +65,7 @@ export function MonthView() {
         }
     };
 
-    const handleAddEvent = async (title: string, type: 'work' | 'personal' | 'meeting', time: string, description: string) => {
+    const handleAddEvent = async (title: string, type: 'work' | 'personal' | 'meeting', time: string, description: string, color?: string) => {
         if (!selectedDate || !user) return;
 
         const [hours, minutes] = time.split(':').map(Number);
@@ -75,11 +75,12 @@ export function MonthView() {
             title,
             description,
             type,
-            start
+            start,
+            color
         });
     };
 
-    const handleUpdateEvent = async (id: string, title: string, type: 'work' | 'personal' | 'meeting', time: string, description: string) => {
+    const handleUpdateEvent = async (id: string, title: string, type: 'work' | 'personal' | 'meeting', time: string, description: string, color?: string) => {
         if (!user || !selectedDate) return;
 
         const [hours, minutes] = time.split(':').map(Number);
@@ -89,7 +90,8 @@ export function MonthView() {
             title,
             type,
             start,
-            description
+            description,
+            color
         });
     };
 
@@ -165,12 +167,12 @@ export function MonthView() {
 
                                         // Override Logic
                                         const overrideColor = overrides[e.id]?.color;
-                                        const subColor = overrideColor || (sub ? sub.color : null);
+                                        const displayColor = overrideColor || e.color || (sub ? sub.color : null);
 
-                                        const customStyle = subColor ? {
-                                            backgroundColor: `${subColor}20`,
-                                            color: subColor,
-                                            borderLeftColor: subColor
+                                        const customStyle = displayColor ? {
+                                            backgroundColor: `${displayColor}20`,
+                                            color: displayColor,
+                                            borderLeftColor: displayColor
                                         } : {};
 
                                         return (

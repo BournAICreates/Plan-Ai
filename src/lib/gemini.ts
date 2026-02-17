@@ -15,15 +15,12 @@ const MODEL_FALLBACK_LIST = [
     "gemini-pro-vision"
 ];
 
-async function tryGenerate(apiKey: string, prompt: string, modelName: string) {
+async function tryGenerate(apiKey: string, systemInstruction: string, prompt: string, modelName: string) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
         model: modelName
     });
 
-    // Legacy support: gemini-pro doesn't support systemInstruction properly via config in all versions.
-    // We prepend it to the prompt to be safe.
-    const systemInstruction = "You are a professional writing assistant. You output ONLY the requested content for a note. Never include conversational filler, preambles, conclusions, or meta-commentary like 'Here is your plan' or 'Hope this helps'. Your output must be ready to be inserted directly into a document editor.";
     const finalPrompt = `${systemInstruction}\n\n${prompt}`;
 
     const result = await model.generateContent(finalPrompt);
@@ -34,9 +31,8 @@ async function tryGenerate(apiKey: string, prompt: string, modelName: string) {
 export async function generateContent(apiKeys: string[], prompt: string) {
     if (!apiKeys || apiKeys.length === 0) throw new Error("Gemini API Keys are missing.");
 
-    // Explicit prompt constraint for generation
-    const fullPrompt = `Task: Generate content based on this user prompt. Output ONLY the raw content.
-    User Prompt: ${prompt}`;
+    const systemInstruction = "You are a professional writing assistant. You output ONLY the requested content for a note. Never include conversational filler, preambles, conclusions, or meta-commentary. Your output must be ready to be inserted directly into a document editor.";
+    const fullPrompt = `Task: Generate content based on this user prompt. Output ONLY the raw content.\nUser Prompt: ${prompt}`;
 
     let lastError: any = null;
 
@@ -45,34 +41,25 @@ export async function generateContent(apiKeys: string[], prompt: string) {
         try {
             for (const modelName of MODEL_FALLBACK_LIST) {
                 try {
-                    console.log(`Attempting AI generation with model: ${modelName} (Key ending in ...${apiKey.slice(-4)})`);
-                    const text = await tryGenerate(apiKey, fullPrompt, modelName);
-                    console.log(`Successfully used model: ${modelName}`);
+                    console.log(`Attempting AI generation with model: ${modelName}`);
+                    const text = await tryGenerate(apiKey, systemInstruction, fullPrompt, modelName);
                     return text;
                 } catch (error) {
-                    console.warn(`Gemini (${modelName}) failed with current key, trying next model...`, error);
                     lastError = error;
                 }
             }
         } catch (keyError) {
-            console.warn(`Key failed completely, trying next key...`);
+            console.warn(`Key failed, trying next key...`);
         }
     }
-
-    console.error("All Gemini models and keys failed:", lastError);
     throw lastError;
 }
 
 export async function enhanceContent(apiKeys: string[], content: string, instruction: string) {
     if (!apiKeys || apiKeys.length === 0) throw new Error("Gemini API Keys are missing.");
 
-    // Explicit prompt constraint for enhancement
-    const fullPrompt = `Task: Enhance the provided content based on the user instruction. Output ONLY the enhanced text.
-    
-    User Instruction: ${instruction}
-    
-    Original Content:
-    ${content}`;
+    const systemInstruction = "You are a professional writing assistant. You output ONLY the enhanced content. Never include commentary.";
+    const fullPrompt = `Task: Enhance the provided content based on the user instruction. Output ONLY the enhanced text.\n\nUser Instruction: ${instruction}\n\nOriginal Content:\n${content}`;
 
     let lastError: any = null;
 
@@ -81,31 +68,23 @@ export async function enhanceContent(apiKeys: string[], content: string, instruc
         try {
             for (const modelName of MODEL_FALLBACK_LIST) {
                 try {
-                    console.log(`Attempting AI enhancement with model: ${modelName} (Key ending in ...${apiKey.slice(-4)})`);
-                    const text = await tryGenerate(apiKey, fullPrompt, modelName);
-                    console.log(`Successfully used model: ${modelName}`);
-                    return text;
+                    return await tryGenerate(apiKey, systemInstruction, fullPrompt, modelName);
                 } catch (error) {
-                    console.warn(`Gemini-Enhance (${modelName}) failed, trying next model...`, error);
                     lastError = error;
                 }
             }
         } catch (keyError) {
-            console.warn(`Key failed completely, trying next key...`);
+            console.warn(`Key failed, trying next key...`);
         }
     }
-
-    console.error("All Gemini-Enhance models and keys failed:", lastError);
     throw lastError;
 }
 
 export async function summarizeTranscript(apiKeys: string[], transcript: string): Promise<string> {
     if (!apiKeys || apiKeys.length === 0) throw new Error("Gemini API Keys are missing.");
 
-    const fullPrompt = `Task: Summarize the following YouTube video transcript. Create a concise, well-structured summary that captures the key points, main ideas, and important details. Use bullet points or paragraphs as appropriate. Output ONLY the summary.
-    
-    Transcript:
-    ${transcript}`;
+    const systemInstruction = "You are a summarization assistant. Create a concise, well-structured summary. Output ONLY the summary.";
+    const fullPrompt = `Task: Summarize the following YouTube video transcript.\n\nTranscript:\n${transcript}`;
 
     let lastError: any = null;
 
@@ -114,21 +93,87 @@ export async function summarizeTranscript(apiKeys: string[], transcript: string)
         try {
             for (const modelName of MODEL_FALLBACK_LIST) {
                 try {
-                    console.log(`Attempting transcript summarization with model: ${modelName} (Key ending in ...${apiKey.slice(-4)})`);
-                    const text = await tryGenerate(apiKey, fullPrompt, modelName);
-                    console.log(`Successfully summarized with model: ${modelName}`);
-                    return text;
+                    return await tryGenerate(apiKey, systemInstruction, fullPrompt, modelName);
                 } catch (error) {
-                    console.warn(`Gemini-Summarize (${modelName}) failed, trying next model...`, error);
                     lastError = error;
                 }
             }
         } catch (keyError) {
-            console.warn(`Key failed completely, trying next key...`);
+            console.warn(`Key failed, trying next key...`);
         }
     }
+    throw lastError;
+}
 
-    console.error("All Gemini-Summarize models and keys failed:", lastError);
+export async function chatWithTutor(apiKeys: string[], context: string, userQuestion: string) {
+    if (!apiKeys || apiKeys.length === 0) throw new Error("Gemini API Keys are missing.");
+
+    const systemInstruction = "You are a helpful AI tutor assistant. You can answer questions and help the user edit their notes. You are conversational and friendly.";
+    const fullPrompt = `${context}\n\nUser Question: ${userQuestion}`;
+
+    let lastError: any = null;
+
+    for (const apiKey of apiKeys) {
+        if (!apiKey) continue;
+        try {
+            for (const modelName of MODEL_FALLBACK_LIST) {
+                try {
+                    return await tryGenerate(apiKey, systemInstruction, fullPrompt, modelName);
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+        } catch (keyError) {
+            console.warn(`Key failed, trying next key...`);
+        }
+    }
+    throw lastError;
+}
+
+export async function chatWithTutorMultimodal(
+    apiKeys: string[],
+    context: string,
+    userQuestion: string,
+    images: { data: string; mimeType: string }[]
+) {
+    if (!apiKeys || apiKeys.length === 0) throw new Error("Gemini API Keys are missing.");
+
+    const systemInstruction = "You are a helpful AI tutor assistant. You can answer questions, analyze images, and help the user edit their notes. You are conversational and friendly.";
+
+    const parts: any[] = [
+        { text: `${systemInstruction}\n\n${context}\n\nUser Question: ${userQuestion}` }
+    ];
+
+    for (const img of images) {
+        parts.push({
+            inlineData: {
+                data: img.data.replace(/^data:[^;]+;base64,/, ''),
+                mimeType: img.mimeType
+            }
+        });
+    }
+
+    let lastError: any = null;
+
+    for (const apiKey of apiKeys) {
+        if (!apiKey) continue;
+        try {
+            for (const modelName of MODEL_FALLBACK_LIST) {
+                try {
+                    console.log(`Attempting multimodal chat with model: ${modelName}`);
+                    const genAI = new GoogleGenerativeAI(apiKey);
+                    const model = genAI.getGenerativeModel({ model: modelName });
+                    const result = await model.generateContent(parts);
+                    const response = await result.response;
+                    return response.text();
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+        } catch (keyError) {
+            console.warn(`Key failed, trying next key...`);
+        }
+    }
     throw lastError;
 }
 

@@ -6,6 +6,7 @@ export interface CalendarEvent {
     description?: string;
     isExternal?: boolean;
     subscriptionId?: string;
+    color?: string;
 }
 
 export interface CalendarSubscription {

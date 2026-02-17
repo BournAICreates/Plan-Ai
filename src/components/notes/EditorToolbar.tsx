@@ -2,15 +2,14 @@ import { Editor } from '@tiptap/react';
 import {
     Bold, Italic, Strikethrough,
     List, ListOrdered, Quote, Undo, Redo,
-    ChevronDown, Sparkles, Youtube, GraduationCap
+    ChevronDown, Youtube, GraduationCap
+
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import { useSettingsStore } from '../../store/useSettingsStore';
-import { useNoteStore } from '../../store/useNoteStore'; // Added import
-import { AiPromptModal } from './AiPromptModal';
+import { useNoteStore } from '../../store/useNoteStore';
+
 import { YoutubeModal } from './YoutubeModal';
-import { StudyModal } from './StudyModal'; // Added import
-import { generateContent, enhanceContent } from '../../lib/gemini';
+import { StudyModal } from './StudyModal';
 import styles from './Notes.module.css';
 
 interface EditorToolbarProps {
@@ -18,15 +17,13 @@ interface EditorToolbarProps {
 }
 
 export function EditorToolbar({ editor }: EditorToolbarProps) {
-    const { geminiApiKeys } = useSettingsStore();
-    const { activeNoteId, notes } = useNoteStore(); // Added hook
+    const { activeNoteId, notes } = useNoteStore();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isAiModalOpen, setIsAiModalOpen] = useState(false);
     const [isYoutubeModalOpen, setIsYoutubeModalOpen] = useState(false);
-    const [isStudyModalOpen, setIsStudyModalOpen] = useState(false); // Added state
+    const [isStudyModalOpen, setIsStudyModalOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
-    const isTextSelected = editor?.state.selection.empty === false;
+
     const activeNote = notes.find(n => n.id === activeNoteId);
 
     useEffect(() => {
@@ -39,21 +36,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleAiSubmit = async (prompt: string) => {
-        if (!editor || !geminiApiKeys || geminiApiKeys.length === 0) return;
 
-        if (isTextSelected) {
-            const selectedText = editor.state.doc.textBetween(
-                editor.state.selection.from,
-                editor.state.selection.to
-            );
-            const enhanced = await enhanceContent(geminiApiKeys, selectedText, prompt);
-            editor.chain().focus().insertContent(enhanced).run();
-        } else {
-            const generated = await generateContent(geminiApiKeys, prompt);
-            editor.chain().focus().insertContent(generated).run();
-        }
-    };
 
     const handleYoutubeSubmit = (transcript: string) => {
         if (!editor) return;
@@ -71,7 +54,6 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
 
     return (
         <div className={styles.toolbar}>
-            {/* ... Font Size and Format Buttons ... */}
             <div className={styles.toolbarGroup}>
                 <div className={styles.sizeCombobox} ref={menuRef}>
                     <input
@@ -97,7 +79,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
 
                     {isMenuOpen && (
                         <div className={styles.presetsMenu}>
-                            {[6, 12, 24, 36, 48, 60, 72, 84].map((size) => (
+                            {[6, 12, 16, 24, 36, 48, 60, 72, 84].map((size) => (
                                 <div
                                     key={size}
                                     className={styles.presetItem}
@@ -169,13 +151,6 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
 
             <div className={styles.toolbarGroup}>
                 <button
-                    onClick={() => setIsAiModalOpen(true)}
-                    className={`${styles.toolbarBtn} ${styles.aiBtn}`}
-                    title={isTextSelected ? "Enhance Selection with AI" : "Ask AI to Write"}
-                >
-                    <Sparkles size={18} />
-                </button>
-                <button
                     onClick={() => setIsStudyModalOpen(true)}
                     className={`${styles.toolbarBtn} ${styles.aiBtn}`}
                     title="Study Flashcards"
@@ -213,14 +188,6 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                 </button>
             </div>
 
-            <AiPromptModal
-                isOpen={isAiModalOpen}
-                onClose={() => setIsAiModalOpen(false)}
-                onSubmit={handleAiSubmit}
-                isEnhancing={isTextSelected}
-                noteId={activeNoteId || ''}
-                noteContent={activeNote?.content || ''}
-            />
 
             <StudyModal
                 isOpen={isStudyModalOpen}
@@ -234,6 +201,6 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                 onClose={() => setIsYoutubeModalOpen(false)}
                 onSubmit={handleYoutubeSubmit}
             />
-        </div>
+        </div >
     );
 }

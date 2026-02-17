@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Sparkles, Loader2, CheckCircle, XCircle, ArrowRight, RotateCcw, Key, ClipboardPen, Trash2 } from 'lucide-react';
+import { X, Sparkles, Loader2, CheckCircle, XCircle, ArrowRight, RotateCcw, Key, ClipboardPen, Trash2, Layout } from 'lucide-react';
 import styles from '../notes/Notes.module.css';
 import dashboardStyles from '../dashboard/Dashboard.module.css';
 import { useAuth } from '../../contexts/AuthContext';
@@ -307,9 +307,29 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
                                     <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
                                         To generate AI tests from your notes, please set up your Gemini API Key.
                                     </p>
-                                    <div style={{ background: 'var(--color-bg-secondary)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border)', color: 'var(--color-text-main)', fontSize: '0.95rem' }}>
+                                    <div style={{ background: 'var(--color-bg-secondary)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border)', color: 'var(--color-text-main)', fontSize: '0.95rem', marginBottom: '1rem' }}>
                                         Please <strong>close this window</strong> and click the <strong>Gemini (Sparkles) button</strong> in the Notes toolbar to configure your keys.
                                     </div>
+                                    <a
+                                        href="https://aistudio.google.com/app/apikey"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            color: 'var(--color-primary)',
+                                            fontSize: '0.85rem',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            textDecoration: 'none',
+                                            fontWeight: 600
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                                        onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                                    >
+                                        Get your Gemini API key from Google AI Studio
+                                        <Sparkles size={14} />
+                                    </a>
+
                                     <button
                                         onClick={onClose}
                                         className={dashboardStyles.studyActionBtn}
@@ -399,12 +419,13 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
 
                                     <button
                                         onClick={handleGenerateTest}
-                                        className={dashboardStyles.studyActionBtn}
-                                        style={{ background: 'var(--color-primary)', color: 'white', padding: '0.75rem 2rem', fontSize: '1.1rem', marginBottom: '2rem' }}
+                                        className={`${dashboardStyles.studyBtn} ${dashboardStyles.studyBtnPrimary}`}
+                                        style={{ padding: '1rem 3rem', fontSize: '1.2rem', marginBottom: '2rem' }}
                                     >
                                         <Sparkles size={20} />
                                         Generate New Test
                                     </button>
+
 
                                     {tests.length > 0 && (
                                         <div style={{ width: '100%', maxWidth: '600px', textAlign: 'left' }}>
@@ -483,10 +504,11 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
                                 <span>Progress: {Math.round(((currentIndex) / questions.length) * 100)}%</span>
                             </div>
 
-                            <div style={{ marginBottom: '2rem' }}>
-                                <h3 style={{ fontSize: '1.35rem', fontWeight: '600', marginBottom: '1.5rem', lineHeight: '1.4', color: 'var(--color-text-main)' }}>
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', lineHeight: '1.4', color: 'var(--color-text-main)' }}>
                                     {questions[currentIndex].question}
                                 </h3>
+
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                     {questions[currentIndex].options.map((option, idx) => {
@@ -495,68 +517,47 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
                                         const showWrong = isSelected && !isCorrect;
                                         const showRight = isSelected && isCorrect;
 
-                                        let borderColor = 'var(--color-border)';
-                                        let backgroundColor = 'var(--color-bg-secondary)';
-                                        let textColor = 'var(--color-text-main)';
-                                        let boxShadow = 'none';
-
-                                        if (showWrong) {
-                                            borderColor = 'var(--color-danger)';
-                                            backgroundColor = 'rgba(239, 68, 68, 0.1)';
-                                            textColor = 'var(--color-danger)';
-                                            boxShadow = '0 0 10px rgba(239, 68, 68, 0.2)';
-                                        } else if (showRight) {
-                                            borderColor = 'var(--color-success)';
-                                            backgroundColor = 'rgba(34, 197, 94, 0.1)';
-                                            textColor = 'var(--color-success)';
-                                            boxShadow = '0 0 10px rgba(34, 197, 94, 0.2)';
-                                        }
+                                        let optionClass = dashboardStyles.quizOption;
+                                        if (showWrong) optionClass += ` ${dashboardStyles.quizOptionWrong}`;
+                                        if (showRight) optionClass += ` ${dashboardStyles.quizOptionCorrect}`;
 
                                         return (
                                             <button
                                                 key={idx}
                                                 onClick={() => handleAnswer(idx)}
-                                                style={{
-                                                    padding: '1rem',
-                                                    borderRadius: '8px',
-                                                    textAlign: 'left',
-                                                    border: `2px solid ${borderColor}`,
-                                                    background: backgroundColor,
-                                                    color: textColor,
-                                                    boxShadow: boxShadow,
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s ease',
-                                                    fontSize: '1rem',
-                                                    position: 'relative'
-                                                }}
+                                                className={optionClass}
                                             >
-                                                <span style={{ fontWeight: 'bold', marginRight: '0.5rem' }}>{String.fromCharCode(65 + idx)}.</span>
+                                                <div className={dashboardStyles.optionIndex}>
+                                                    {String.fromCharCode(65 + idx)}
+                                                </div>
                                                 {option}
 
-                                                {showWrong && <XCircle size={20} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)' }} />}
-                                                {showRight && <CheckCircle size={20} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)' }} />}
+                                                {showWrong && <XCircle size={20} style={{ marginLeft: 'auto' }} />}
+                                                {showRight && <CheckCircle size={20} style={{ marginLeft: 'auto' }} />}
                                             </button>
                                         );
                                     })}
                                 </div>
+
                             </div>
 
-                            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem', paddingBottom: '1rem' }}>
+
                                 <button
                                     onClick={handleNext}
-                                    disabled={userAnswers[currentIndex] !== questions[currentIndex].correctIndex}
-                                    className={dashboardStyles.studyActionBtn}
+                                    disabled={userAnswers[currentIndex] === undefined}
+                                    className={`${dashboardStyles.studyBtn} ${userAnswers[currentIndex] !== undefined ? dashboardStyles.studyBtnPrimary : ''}`}
                                     style={{
-                                        background: userAnswers[currentIndex] === questions[currentIndex].correctIndex ? 'var(--color-primary)' : 'var(--color-border)',
-                                        color: 'white',
-                                        cursor: userAnswers[currentIndex] === questions[currentIndex].correctIndex ? 'pointer' : 'not-allowed',
-                                        opacity: userAnswers[currentIndex] === questions[currentIndex].correctIndex ? 1 : 0.6
+                                        opacity: userAnswers[currentIndex] !== undefined ? 1 : 0.4,
+                                        width: '240px',
+                                        justifyContent: 'center'
                                     }}
                                 >
-                                    {currentIndex === questions.length - 1 ? 'Submit Test' : 'Next Question'}
+                                    {currentIndex === questions.length - 1 ? 'Finish & Submit' : 'Next Question'}
                                     <ArrowRight size={18} />
                                 </button>
                             </div>
+
                         </div>
                     )}
 
@@ -645,12 +646,12 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
                                 })}
                             </div>
 
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '3rem', marginBottom: '2rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '2.5rem', marginBottom: '1.5rem', paddingBottom: '1rem' }}>
                                 {score < questions.length && (
                                     <button
                                         onClick={handleRetakeMissed}
-                                        className={dashboardStyles.studyActionBtn}
-                                        style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-main)', border: '1px solid var(--color-border)', padding: '0.75rem 2rem' }}
+                                        className={dashboardStyles.studyBtn}
+                                        style={{ flex: '1', minWidth: '180px', justifyContent: 'center' }}
                                     >
                                         <RotateCcw size={18} />
                                         Retake Missed ({questions.length - score})
@@ -658,20 +659,22 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
                                 )}
                                 <button
                                     onClick={resetTest}
-                                    className={dashboardStyles.studyActionBtn}
-                                    style={{ background: 'var(--color-primary)', color: 'white', padding: '0.75rem 2rem' }}
+                                    className={`${dashboardStyles.studyBtn} ${dashboardStyles.studyBtnPrimary}`}
+                                    style={{ flex: '1.2', minWidth: '200px', justifyContent: 'center' }}
                                 >
                                     <Sparkles size={18} />
                                     New Test
                                 </button>
                                 <button
                                     onClick={() => setView('intro')}
-                                    className={dashboardStyles.studyActionBtn}
-                                    style={{ background: 'transparent', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', padding: '0.75rem 2rem' }}
+                                    className={dashboardStyles.studyBtn}
+                                    style={{ flex: '1', minWidth: '160px', justifyContent: 'center' }}
                                 >
+                                    <Layout size={18} />
                                     Back to Menu
                                 </button>
                             </div>
+
                         </div>
                     )}
 

@@ -23,8 +23,17 @@ export function NoteEditor() {
     const [isExtracting, setIsExtracting] = useState(false); // Extracting state
     const [statusText, setStatusText] = useState(''); // Status text for loading
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const isSystemUpdate = useRef(false);
+    const lastSavedContent = useRef<string>(activeNote?.content || '');
 
     const isTrash = !!activeNote?.deletedAt;
+
+    // Helper for comparing HTML content (ignores minor whitespace differences)
+    const isEquivalent = (html1: string, html2: string) => {
+        if (html1 === html2) return true;
+        const normalize = (html: string) => html.replace(/\s+/g, ' ').replace(/> </g, '><').trim();
+        return normalize(html1) === normalize(html2);
+    };
 
     const editor = useEditor({
         extensions: [
@@ -36,11 +45,22 @@ export function NoteEditor() {
         content: activeNote?.content || '',
         editable: !isTrash,
         onUpdate: ({ editor }) => {
-            if (activeNoteId && user && !isTrash) {
-                // Debounce save to prevent Firestore write exhaustion
+            if (isSystemUpdate.current) return;
+
+            if (activeNoteId && user && !isTrash && editor.isFocused) {
+                const newContent = editor.getHTML();
+
+                if (isEquivalent(newContent, lastSavedContent.current) || isEquivalent(newContent, activeNote?.content || '')) {
+                    return;
+                }
+
+                console.log("[Editor] Scheduling save...", { length: newContent.length });
+
                 if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
                 saveTimeoutRef.current = setTimeout(() => {
-                    updateNote(user.uid, activeNoteId, { content: editor.getHTML() });
+                    console.log("[Editor] Performing save to Firestore.");
+                    lastSavedContent.current = newContent;
+                    updateNote(user.uid, activeNoteId, { content: newContent });
                 }, 1000);
             }
         },
@@ -53,14 +73,40 @@ export function NoteEditor() {
 
     useEffect(() => {
         if (editor) {
-            if (activeNoteId !== lastActiveNoteId.current) {
-                // Force set content only when switching notes
-                editor.commands.setContent(activeNote?.content || '');
+            const isNoteSwitch = activeNoteId !== lastActiveNoteId.current;
+            const storeContent = activeNote?.content || '';
+            const editorContent = editor.getHTML();
+
+            const isRemoteChange = !isEquivalent(storeContent, lastSavedContent.current);
+            const isDifferentFromEditor = !isEquivalent(storeContent, editorContent);
+
+            // Sync if:
+            // 1. We switched notes
+            // 2. The store changed externally (isRemoteChange) AND it's different from what we see
+            // 3. We are not focused and it's different
+            const shouldSync = isNoteSwitch || (isRemoteChange && isDifferentFromEditor) || (isDifferentFromEditor && !editor.isFocused);
+
+            if (shouldSync) {
+                console.log("[Editor] Syncing from store", { reason: isNoteSwitch ? 'switch' : (isRemoteChange ? 'remote' : 'idle') });
+
+                if (saveTimeoutRef.current) {
+                    console.log("[Editor] Cancelling pending save due to sync.");
+                    clearTimeout(saveTimeoutRef.current);
+                }
+
+                isSystemUpdate.current = true;
+                editor.commands.setContent(storeContent);
+                lastSavedContent.current = storeContent;
+
+                setTimeout(() => {
+                    isSystemUpdate.current = false;
+                }, 200);
+
                 lastActiveNoteId.current = activeNoteId;
             }
             editor.setEditable(!isTrash);
         }
-    }, [activeNoteId, editor, activeNote, isTrash]);
+    }, [activeNoteId, editor, activeNote?.content, isTrash]);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0) return;

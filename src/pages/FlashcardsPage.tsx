@@ -1,14 +1,18 @@
 import { useState, useMemo } from 'react';
 import { useNoteStore } from '../store/useNoteStore';
-import { GraduationCap, ArrowRight, Folder as FolderIcon } from 'lucide-react';
+import { GraduationCap, ArrowRight, Folder as FolderIcon, Trash2 } from 'lucide-react';
 import { StudyModal } from '../components/notes/StudyModal';
 import { useAuth } from '../contexts/AuthContext';
+import { useStudyStore } from '../store/useStudyStore';
+import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 import styles from '../components/dashboard/Dashboard.module.css';
 
 export function FlashcardsPage() {
     const { notes, folders } = useNoteStore();
-    useAuth();
+    const { user } = useAuth();
+    const { deleteFlashcards } = useStudyStore();
     const [selectedNote, setSelectedNote] = useState<{ id: string, content: string } | null>(null);
+    const [noteToDeleteCards, setNoteToDeleteCards] = useState<string | null>(null);
 
     const notesByFolder = useMemo(() => {
         const groups: Record<string, typeof notes> = {};
@@ -112,9 +116,22 @@ export function FlashcardsPage() {
                                             <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
                                                 {note.updatedAt?.toLocaleDateString()}
                                             </span>
-                                            <button className={styles.iconButton} style={{ borderRadius: 'var(--radius-full)', background: 'var(--color-primary-bg)', color: 'var(--color-primary)' }}>
-                                                <ArrowRight size={16} />
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button
+                                                    className={styles.iconButton}
+                                                    style={{ borderRadius: 'var(--radius-full)', background: 'transparent', color: 'var(--color-error)' }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setNoteToDeleteCards(note.id);
+                                                    }}
+                                                    title="Delete Flashcards"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                                <button className={styles.iconButton} style={{ borderRadius: 'var(--radius-full)', background: 'var(--color-primary-bg)', color: 'var(--color-primary)' }}>
+                                                    <ArrowRight size={16} />
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -182,9 +199,22 @@ export function FlashcardsPage() {
                                         <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
                                             {note.updatedAt?.toLocaleDateString()}
                                         </span>
-                                        <button className={styles.iconButton} style={{ borderRadius: 'var(--radius-full)', background: 'var(--color-primary-bg)', color: 'var(--color-primary)' }}>
-                                            <ArrowRight size={16} />
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button
+                                                className={styles.iconButton}
+                                                style={{ borderRadius: 'var(--radius-full)', background: 'transparent', color: 'var(--color-error)' }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setNoteToDeleteCards(note.id);
+                                                }}
+                                                title="Delete Flashcards"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                            <button className={styles.iconButton} style={{ borderRadius: 'var(--radius-full)', background: 'var(--color-primary-bg)', color: 'var(--color-primary)' }}>
+                                                <ArrowRight size={16} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -204,6 +234,21 @@ export function FlashcardsPage() {
                 onClose={() => setSelectedNote(null)}
                 noteId={selectedNote?.id || ''}
                 noteContent={selectedNote?.content || ''}
+            />
+
+            <ConfirmationModal
+                isOpen={!!noteToDeleteCards}
+                onClose={() => setNoteToDeleteCards(null)}
+                onConfirm={async () => {
+                    if (user && noteToDeleteCards) {
+                        await deleteFlashcards(user.uid, noteToDeleteCards);
+                        setNoteToDeleteCards(null);
+                    }
+                }}
+                title="Delete Flashcards"
+                message="Are you sure you want to delete all flashcards associated with this note? This action cannot be undone."
+                confirmText="Delete All"
+                isDangerous={true}
             />
         </div>
     );

@@ -37,7 +37,8 @@ interface NoteState {
     unsubscribeFolders: (() => void) | null;
 
     subscribe: (uid: string) => void;
-    setActiveNote: (id: string) => void;
+    setActiveNote: (id: string | undefined) => void;
+
     setActiveFolder: (id: string | undefined) => void;
     toggleMobileMenu: () => void;
 
@@ -48,6 +49,7 @@ interface NoteState {
     permanentlyDeleteNote: (uid: string, id: string) => Promise<void>;
     emptyTrash: (uid: string) => Promise<void>;
     resetAllStats: (uid: string) => Promise<void>;
+    resetNoteStats: (uid: string, noteId: string) => Promise<void>;
 
     addFolder: (uid: string, name: string) => Promise<string>;
     deleteFolder: (uid: string, id: string) => Promise<void>;
@@ -111,6 +113,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
     },
 
     setActiveNote: (id) => set({ activeNoteId: id, isMobileMenuOpen: false }),
+
     setActiveFolder: (id) => set({ activeFolderId: id }),
     toggleMobileMenu: () => set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
 
@@ -171,6 +174,17 @@ export const useNoteStore = create<NoteState>((set, get) => ({
                 }
             })
         ));
+    },
+
+    resetNoteStats: async (uid: string, noteId: string) => {
+        const { updateNote } = get();
+        await updateNote(uid, noteId, {
+            testStats: {
+                totalScore: 0,
+                totalQuestions: 0,
+                testsTaken: 0
+            }
+        });
     },
 
     addFolder: async (uid, name) => {

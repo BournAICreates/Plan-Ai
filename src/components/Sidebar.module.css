@@ -1,7 +1,7 @@
 .sidebar {
-    width: 260px;
+    width: 280px;
     height: 100vh;
-    background-color: var(--color-bg-glass);
+    background: rgba(255, 255, 255, 0.3);
     backdrop-filter: blur(var(--backdrop-blur));
     -webkit-backdrop-filter: blur(var(--backdrop-blur));
     border-right: 1px solid var(--color-border);
@@ -9,63 +9,85 @@
     flex-direction: column;
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 100;
     transition: all var(--duration-normal) var(--ease-spring);
 }
 
 .header {
-    padding: 2rem 1.5rem;
-    /* subtle gradient text for logo */
-}
-
-.logo {
-    font-size: 1.5rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    letter-spacing: -0.03em;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.nav {
-    padding: 1rem;
+    padding: 2.5rem 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
+.logo {
+    font-size: 1.75rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #475569 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+    letter-spacing: -0.04em;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.05));
+}
+
+.nav {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
 .link {
     display: flex;
     align-items: center;
-    gap: 0.875rem;
-    padding: 0.875rem 1rem;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
     border-radius: var(--radius-md);
     color: var(--color-text-muted);
-    font-weight: 500;
-    transition: all var(--duration-fast) var(--ease-spring);
+    font-weight: 600;
+    transition: all var(--duration-normal) var(--ease-spring);
     position: relative;
-    overflow: hidden;
+    border: 1px solid transparent;
 }
 
 .link:hover {
-    background-color: var(--color-bg-subtle);
-    color: var(--color-primary);
-    transform: translateX(4px);
+    background: rgba(255, 255, 255, 0.5);
+    color: var(--color-text-main);
+    border-color: rgba(255, 255, 255, 0.8);
+    transform: translateX(8px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
 .link.active {
-    background-color: var(--color-primary-subtle);
+    background: white;
     color: var(--color-primary);
-    font-weight: 600;
+    font-weight: 800;
+    border-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+}
+
+.link.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 25%;
+    height: 50%;
+    width: 4px;
+    background: var(--color-primary);
+    border-radius: 0 4px 4px 0;
+    box-shadow: 0 0 10px var(--color-primary);
 }
 
 .footer {
     margin-top: auto;
-    padding-top: 1rem;
+    padding: 1.5rem;
     border-top: 1px solid var(--color-border);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .logoutBtn {
@@ -73,29 +95,17 @@
     align-items: center;
     gap: 0.75rem;
     width: 100%;
-    padding: 0.75rem 1rem;
+    padding: 0.875rem 1rem;
     color: var(--color-text-muted);
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 0.875rem;
     border-radius: var(--radius-md);
-    transition: all 0.2s;
+    transition: all 0.3s ease;
 }
 
 .logoutBtn:hover {
-    background-color: var(--color-warning-bg);
-    color: var(--color-warning);
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
 }
 
-.active:hover {
-    background-color: var(--color-primary-subtle);
-    /* Keep same on hover */
-    transform: none;
-    /* No movement for active */
-}
-
-/* Scroll content wrapper to handle internal scrolling if needed */
 .scrollContent {
     flex: 1;
     display: flex;
@@ -103,44 +113,17 @@
     overflow-y: auto;
 }
 
-.hamburger {
-    display: none;
-    position: fixed;
-    top: 1rem;
-    left: 1rem;
-    z-index: 100;
-    padding: 0.5rem;
-    border-radius: 8px;
-    background: var(--color-bg-surface);
-    border: 1px solid var(--color-border);
-    color: var(--color-text);
-    cursor: pointer;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+/* Custom scrollbar for sidebar */
+.scrollContent::-webkit-scrollbar {
+    width: 4px;
 }
 
-.overlay {
-    display: none;
-}
-
-/* Mobile state class - defined at root for reliability */
-.open {
-    transform: translateX(0) !important;
+.scrollContent::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 10px;
 }
 
 @media (max-width: 768px) {
-    .hamburger {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--color-bg-surface);
-        /* Ensure visible bg */
-        color: var(--color-text-main);
-        /* Ensure visible icon */
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        /* Lift it up */
-        border: 1px solid var(--color-border);
-    }
-
     .sidebar {
         position: fixed;
         left: 0;
@@ -148,49 +131,13 @@
         bottom: 0;
         transform: translateX(-100%);
         z-index: 2000;
-        /* Extremely high z-index to be above everything */
         width: 280px;
-        background: var(--color-bg-surface);
-        border-right: 1px solid var(--color-border);
-        box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(20px);
     }
 
-    /* We use the .open class combined with sidebar in JSX, but here we can target it specifically */
     .sidebar.open {
         transform: translateX(0);
-    }
-
-
-
-    .overlay {
-        display: block;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(4px);
-        z-index: 98;
-        /* Below sidebar */
-        animation: fadeIn 0.2s ease;
-    }
-
-    /* Adjust header in mobile sidebar */
-    .header {
-        padding-top: 3.5rem;
-        /* Space for hamburger if inside, but hamburger is outside. Let's align logo nicely. */
-        padding-left: 1.5rem;
-    }
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
     }
 }
 

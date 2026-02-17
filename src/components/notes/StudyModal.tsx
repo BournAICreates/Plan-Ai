@@ -314,7 +314,8 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
                     </button>
                 </div>
 
-                <div className={styles.modalContent} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <div className={styles.modalContent} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '1.5rem' }}>
+
 
                     {/* View: Generating */}
                     {isGenerating && (
@@ -340,12 +341,13 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
                             </p>
                             <button
                                 onClick={startCramSession}
-                                className={dashboardStyles.studyActionBtn}
-                                style={{ background: 'var(--color-warning)', color: 'white', borderColor: 'var(--color-warning)' }}
+                                className={`${dashboardStyles.studyBtn} ${dashboardStyles.studyBtnPrimary}`}
+                                style={{ background: 'var(--color-warning)', borderColor: 'var(--color-warning)' }}
                             >
                                 <Zap size={18} fill="white" />
                                 Start Cram Session ({flashcards.length} Cards)
                             </button>
+
                         </div>
                     )}
 
@@ -386,39 +388,51 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
                     {/* View: No Cards (Empty State - Normal Modes) */}
                     {!isGenerating && filterMode !== 'cram' && displayedCards.length === 0 && (
                         <div className={dashboardStyles.studyContainer}>
-                            <Sparkles size={48} style={{ color: 'var(--color-primary)', marginBottom: '1.5rem', opacity: 0.5 }} />
-                            <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--color-text-main)' }}>
+                            <div className={dashboardStyles.studyHeaderIcon}>
+                                <Sparkles size={40} />
+                            </div>
+
+                            <h3 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.75rem', color: 'var(--color-text-main)', textAlign: 'center' }}>
                                 {filterMode === 'all' ? "Ready to study?" : "All caught up!"}
                             </h3>
-                            <p style={{ color: 'var(--color-text-muted)', marginBottom: '2rem', textAlign: 'center', maxWidth: '400px' }}>
+                            <p style={{ color: 'var(--color-text-muted)', marginBottom: '3rem', textAlign: 'center', maxWidth: '450px', fontSize: '1.1rem', lineHeight: '1.6' }}>
                                 {filterMode === 'all'
-                                    ? "Use AI to instantly turn your note into a deck of flashcards."
+                                    ? "Turn your notes into a powerful study deck instantly. AI will extract the key concepts for you."
                                     : "You've mastered all these cards! Switch to 'All' to review everything."}
                             </p>
+
                             <div className={dashboardStyles.studyFormGroup}>
                                 <label className={dashboardStyles.studyLabel}>
-                                    <Hash size={16} /> Number of Flashcards
+                                    <Hash size={18} /> How many cards?
                                 </label>
 
                                 <div className={dashboardStyles.studyOptionsRow}>
-                                    <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--color-bg-subtle)', padding: '4px', borderRadius: '14px', flex: 1, border: '1px solid transparent' }}>
+                                    <div style={{
+                                        display: 'flex',
+                                        gap: '0.5rem',
+                                        background: 'rgba(0, 0, 0, 0.03)',
+                                        padding: '6px',
+                                        borderRadius: '18px',
+                                        flex: 1,
+                                        border: '1px solid rgba(0, 0, 0, 0.05)',
+                                        backdropFilter: 'blur(10px)'
+                                    }}>
                                         {(['auto', 5, 10, 25] as const).map((qOption) => (
                                             <button
                                                 key={qOption}
                                                 onClick={() => setCardCount(qOption)}
                                                 style={{
                                                     flex: 1,
-                                                    padding: '0.6rem 0.2rem',
-                                                    borderRadius: '10px',
-                                                    fontSize: '0.9rem',
-                                                    fontWeight: 600,
+                                                    padding: '0.75rem 0.25rem',
+                                                    borderRadius: '12px',
+                                                    fontSize: '0.95rem',
+                                                    fontWeight: 700,
                                                     cursor: 'pointer',
-                                                    background: cardCount === qOption ? 'var(--color-bg-surface)' : 'transparent',
+                                                    background: cardCount === qOption ? 'white' : 'transparent',
                                                     color: cardCount === qOption ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                                                    boxShadow: cardCount === qOption ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
-                                                    border: '1px solid',
-                                                    borderColor: cardCount === qOption ? 'var(--color-border)' : 'transparent',
-                                                    transition: 'all 0.2s ease'
+                                                    boxShadow: cardCount === qOption ? '0 4px 12px rgba(0,0,0,0.08)' : 'none',
+                                                    border: 'none',
+                                                    transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
                                                 }}
                                             >
                                                 {qOption === 'auto' ? 'Auto' : qOption}
@@ -444,7 +458,7 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
 
                             <div className={dashboardStyles.studyFormGroup}>
                                 <label className={dashboardStyles.studyLabel}>
-                                    <Sparkles size={16} /> Custom Instructions (Optional)
+                                    <Zap size={18} /> Custom Focus
                                 </label>
                                 <textarea
                                     className={`${dashboardStyles.studyInputBase} ${dashboardStyles.studyTextarea}`}
@@ -453,31 +467,32 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
                                     onChange={(e) => setCustomInstructions(e.target.value)}
                                 />
                             </div>
+
                             {/* Only show generate if we have absolutely no cards, not just filtered ones */}
                             {flashcards.length === 0 && (
                                 <button
                                     onClick={handleGenerate}
-                                    className={dashboardStyles.studyActionBtn}
-                                    style={{ background: 'var(--color-primary)', color: 'white', borderColor: 'var(--color-primary)' }}
+                                    className={`${dashboardStyles.studyBtn} ${dashboardStyles.studyBtnPrimary}`}
+                                    style={{ padding: '1.25rem 4rem', fontSize: '1.1rem', marginTop: '1rem', boxShadow: '0 10px 30px rgba(var(--color-primary-rgb), 0.3)' }}
                                 >
-                                    <Sparkles size={18} />
-                                    Generate Flashcards
+                                    <Sparkles size={22} />
+                                    Create My Study Deck
                                 </button>
                             )}
 
                             {flashcards.length > 0 && (
                                 <button
                                     onClick={() => setIsDeleteConfirmOpen(true)}
-                                    className={dashboardStyles.studyActionBtn}
+                                    className={dashboardStyles.studyBtn}
                                     style={{
                                         marginTop: '1rem',
-                                        background: 'transparent',
                                         color: 'var(--color-error)',
                                         borderColor: 'var(--color-error)',
                                         opacity: 0.8
                                     }}
                                 >
-                                    Delete Set
+                                    <Trash2 size={18} />
+                                    Delete All Cards
                                 </button>
                             )}
                         </div>
@@ -507,85 +522,58 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
 
                             <div
                                 key={currentIndex}
-                                className={`${dashboardStyles.flashcard} ${dashboardStyles.flashcardEntry} ${isFlipped ? dashboardStyles.flipped : ''}`}
+                                className={dashboardStyles.flashcardWrapper}
                                 onClick={() => setIsFlipped(!isFlipped)}
                             >
-                                <div className={dashboardStyles.flashcardFace}>
-                                    {displayedCards[currentIndex]?.front}
-                                </div>
-                                <div className={`${dashboardStyles.flashcardFace} ${dashboardStyles.flashcardBack}`}>
-                                    {displayedCards[currentIndex]?.back}
+                                <div className={`${dashboardStyles.flashcard} ${isFlipped ? dashboardStyles.flipped : ''}`}>
+                                    <div className={dashboardStyles.flashcardFace}>
+                                        {displayedCards[currentIndex]?.front}
+                                    </div>
+                                    <div className={`${dashboardStyles.flashcardFace} ${dashboardStyles.flashcardBack}`}>
+                                        {displayedCards[currentIndex]?.back}
+                                    </div>
                                 </div>
                             </div>
 
                             <div className={dashboardStyles.studyControls}>
-                                <button className={dashboardStyles.studyActionBtn} onClick={handlePrev}>
+                                <button className={dashboardStyles.studyBtn} onClick={handlePrev}>
                                     <ChevronLeft size={20} />
                                     Prev
                                 </button>
                                 <button
-                                    className={dashboardStyles.studyActionBtn}
+                                    className={`${dashboardStyles.studyBtn} ${dashboardStyles.studyBtnPrimary}`}
                                     onClick={() => setIsFlipped(!isFlipped)}
-                                    style={{ minWidth: '100px', justifyContent: 'center' }}
+                                    style={{ minWidth: '140px', justifyContent: 'center' }}
                                 >
                                     <RotateCcw size={18} />
-                                    Flip
+                                    Flip Card
                                 </button>
-                                <button className={dashboardStyles.studyActionBtn} onClick={handleNext}>
+                                <button className={dashboardStyles.studyBtn} onClick={handleNext}>
                                     Next
                                     <ChevronRight size={20} />
                                 </button>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'center', width: '100%', maxWidth: '500px' }}>
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.25rem', justifyContent: 'center', width: '100%', maxWidth: '500px', paddingBottom: '1rem' }}>
+
                                 <button
-                                    className={dashboardStyles.studyActionBtn}
+                                    className={`${dashboardStyles.studyBtn} ${dashboardStyles.studyBtnDanger}`}
                                     onClick={(e) => { e.stopPropagation(); handleRate('learning'); }}
                                     disabled={statusUpdating}
-                                    style={{
-                                        flex: 1,
-                                        justifyContent: 'center',
-                                        background: 'transparent',
-                                        border: '1px solid var(--color-error, #ff4d4f)',
-                                        color: 'var(--color-error, #ff4d4f)',
-                                        transition: 'all 0.2s ease',
-                                        padding: '0.75rem'
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 77, 79, 0.1)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    style={{ flex: 1, justifyContent: 'center' }}
                                 >
                                     <X size={18} />
                                     Don't Know
                                 </button>
 
-
-
                                 <button
-                                    className={dashboardStyles.studyActionBtn}
+                                    className={`${dashboardStyles.studyBtn} ${dashboardStyles.studyBtnSuccess}`}
                                     onClick={(e) => { e.stopPropagation(); handleRate('mastered'); }}
                                     disabled={statusUpdating}
-                                    style={{
-                                        flex: 1.5,
-                                        justifyContent: 'center',
-                                        background: 'var(--color-success, #52c41a)',
-                                        border: '1px solid var(--color-success, #52c41a)',
-                                        color: 'white',
-                                        fontWeight: 600,
-                                        boxShadow: '0 4px 12px rgba(82, 196, 26, 0.3)',
-                                        transition: 'all 0.2s ease',
-                                        padding: '0.75rem'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.transform = 'translateY(-2px)';
-                                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(82, 196, 26, 0.4)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.transform = 'translateY(0)';
-                                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(82, 196, 26, 0.3)';
-                                    }}
+                                    style={{ flex: 1.5, justifyContent: 'center' }}
                                 >
                                     <Sparkles size={18} fill="white" />
-                                    Know
+                                    I Know This
                                 </button>
                             </div>
                         </div>

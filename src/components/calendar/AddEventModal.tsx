@@ -9,8 +9,8 @@ import { useAuth } from '../../contexts/AuthContext';
 interface AddEventModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAdd: (title: string, type: 'work' | 'personal' | 'meeting', time: string, description: string) => void;
-    onUpdate?: (id: string, title: string, type: 'work' | 'personal' | 'meeting', time: string, description: string) => void;
+    onAdd: (title: string, type: 'work' | 'personal' | 'meeting', time: string, description: string, color?: string) => void;
+    onUpdate?: (id: string, title: string, type: 'work' | 'personal' | 'meeting', time: string, description: string, color?: string) => void;
     selectedDate: Date | null;
     eventToEdit?: CalendarEvent | null;
 }
@@ -23,7 +23,7 @@ export function AddEventModal({ isOpen, onClose, onAdd, onUpdate, selectedDate, 
     const [description, setDescription] = useState('');
     const [type, setType] = useState<'work' | 'personal' | 'meeting'>('work');
     const [time, setTime] = useState('09:00');
-    const [color, setColor] = useState<string>(''); // For overrides
+    const [color, setColor] = useState<string>(''); // For overrides or direct color
 
     const isExternal = eventToEdit?.isExternal;
 
@@ -35,9 +35,11 @@ export function AddEventModal({ isOpen, onClose, onAdd, onUpdate, selectedDate, 
                 setType(eventToEdit.type as any);
                 setTime(format(eventToEdit.start, 'HH:mm'));
 
-                // Load override color if exists
+                // Load override color if exists, else event color
                 if (isExternal && overrides[eventToEdit.id]?.color) {
                     setColor(overrides[eventToEdit.id].color!);
+                } else if (!isExternal && eventToEdit.color) {
+                    setColor(eventToEdit.color);
                 } else {
                     setColor('');
                 }
@@ -72,9 +74,9 @@ export function AddEventModal({ isOpen, onClose, onAdd, onUpdate, selectedDate, 
 
         if (title.trim()) {
             if (eventToEdit && onUpdate) {
-                onUpdate(eventToEdit.id, title, type, time, description);
+                onUpdate(eventToEdit.id, title, type, time, description, color);
             } else {
-                onAdd(title, type, time, description);
+                onAdd(title, type, time, description, color);
             }
             onClose();
         }
@@ -114,7 +116,7 @@ export function AddEventModal({ isOpen, onClose, onAdd, onUpdate, selectedDate, 
                             placeholder="Description (Optional)"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            rows={3}
+                            rows={2}
                             disabled={isExternal}
                             style={isExternal ? { background: '#f3f4f6', cursor: 'default' } : {}}
                         />
@@ -133,7 +135,7 @@ export function AddEventModal({ isOpen, onClose, onAdd, onUpdate, selectedDate, 
                             />
                         </div>
 
-                        {!isExternal ? (
+                        {!isExternal && (
                             <div className={styles.field}>
                                 <label className={styles.label}><Tag size={14} /> Type</label>
                                 <CustomSelect
@@ -146,41 +148,43 @@ export function AddEventModal({ isOpen, onClose, onAdd, onUpdate, selectedDate, 
                                     ]}
                                 />
                             </div>
-                        ) : (
-                            <div className={styles.field}>
-                                <label className={styles.label}>Event Color</label>
-                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                    {PRESET_COLORS.map(c => (
-                                        <button
-                                            key={c}
-                                            onClick={() => setColor(c)}
-                                            style={{
-                                                width: '24px',
-                                                height: '24px',
-                                                borderRadius: '50%',
-                                                background: c,
-                                                border: color === c ? '2px solid white' : '2px solid transparent',
-                                                boxShadow: color === c ? `0 0 0 2px ${c}` : 'none',
-                                                cursor: 'pointer'
-                                            }}
-                                        />
-                                    ))}
-                                    <button
-                                        onClick={() => setColor('')}
-                                        style={{
-                                            fontSize: '0.7rem',
-                                            padding: '2px 8px',
-                                            borderRadius: '12px',
-                                            border: '1px solid #e5e7eb',
-                                            background: !color ? '#e5e7eb' : 'white',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        Auto
-                                    </button>
-                                </div>
-                            </div>
                         )}
+
+                        <div className={styles.field} style={{ flex: 1 }}>
+                            <label className={styles.label}>Color</label>
+                            <div style={{ display: 'flex', gap: '5px', flexWrap: 'nowrap', alignItems: 'center' }}>
+                                {PRESET_COLORS.map(c => (
+                                    <button
+                                        key={c}
+                                        onClick={() => setColor(c)}
+                                        style={{
+                                            width: '20px',
+                                            height: '20px',
+                                            borderRadius: '50%',
+                                            background: c,
+                                            border: color === c ? '2px solid white' : '2px solid transparent',
+                                            boxShadow: color === c ? `0 0 0 2px ${c}` : 'none',
+                                            cursor: 'pointer',
+                                            flexShrink: 0
+                                        }}
+                                    />
+                                ))}
+                                <button
+                                    onClick={() => setColor('')}
+                                    style={{
+                                        fontSize: '0.65rem',
+                                        padding: '2px 6px',
+                                        borderRadius: '10px',
+                                        border: '1px solid #e5e7eb',
+                                        background: !color ? '#e5e7eb' : 'white',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    Auto
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

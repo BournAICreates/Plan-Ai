@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import styles from './Dashboard.module.css';
+import styles from './Widgets.module.css';
 
 export function DigitalClock() {
     const [time, setTime] = useState(new Date());

@@ -1,17 +1,12 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Calendar, CheckSquare, Notebook, Command, LogOut, Sun, Moon, GraduationCap, ClipboardPen, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Command, LogOut, Sun, Moon, Menu, X } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { useTheme } from '../contexts/ThemeContext';
 import styles from './Sidebar.module.css';
 
 const navItems = [
-    { path: '/', label: 'Overview', icon: LayoutDashboard },
-    { path: '/tasks', label: 'Tasks', icon: CheckSquare },
-    { path: '/calendar', label: 'Calendar', icon: Calendar },
-    { path: '/notes', label: 'Notes', icon: Notebook },
-    { path: '/flashcards', label: 'Flashcards', icon: GraduationCap },
-    { path: '/tests', label: 'Tests', icon: ClipboardPen },
+    { path: '/', label: 'Notebook', icon: LayoutDashboard },
 ];
 
 export function Sidebar() {
@@ -41,7 +36,6 @@ export function Sidebar() {
                         <Command size={24} style={{ strokeWidth: 3, color: 'var(--color-primary)' }} />
                         Plan.ai
                     </h1>
-                    {/* Close button inside sidebar for mobile ease of access if needed, though toggle is external usually */}
                 </div>
 
                 <div className={styles.scrollContent}>
@@ -50,7 +44,7 @@ export function Sidebar() {
                             <NavLink
                                 key={item.path}
                                 to={item.path}
-                                onClick={() => setIsMobileMenuOpen(false)} // Close on click for mobile
+                                onClick={() => setIsMobileMenuOpen(false)}
                                 className={({ isActive }) =>
                                     `${styles.link} ${isActive ? styles.active : ''}`
                                 }

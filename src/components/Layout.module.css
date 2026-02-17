@@ -6,12 +6,11 @@
 
 .main {
     flex: 1;
-    padding: 2rem;
     overflow-y: auto;
     position: relative;
-    max-width: 1400px;
-    margin: 0 auto;
+    width: 100%;
 }
+
 
 @media (max-width: 768px) {
     .container {
