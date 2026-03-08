@@ -13,7 +13,11 @@ import { FontSize } from '../../extensions/FontSize';
 import styles from './Notes.module.css';
 import { Image as ImageIcon, Loader2, RefreshCw, Trash2 } from 'lucide-react'; // Import icons
 
-export function NoteEditor() {
+interface NoteEditorProps {
+    variant?: 'default' | 'minimal';
+}
+
+export function NoteEditor({ variant = 'default' }: NoteEditorProps) {
     const { notes, activeNoteId, updateNote, restoreNote } = useNoteStore();
     const { user } = useAuth();
     const { geminiApiKeys } = useSettingsStore(); // Get API keys
@@ -184,8 +188,10 @@ export function NoteEditor() {
         );
     }
 
+    const isMinimal = variant === 'minimal';
+
     return (
-        <div className={styles.editorContainer}>
+        <div className={styles.editorContainer} style={isMinimal ? { background: 'transparent', border: 'none', boxShadow: 'none', padding: 0 } : {}}>
             {isTrash && (
                 <div style={{ background: 'var(--color-bg-tertiary)', padding: '0.75rem 1rem', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--color-text-secondary)' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -202,38 +208,44 @@ export function NoteEditor() {
                     </button>
                 </div>
             )}
-            {!isTrash && <EditorToolbar editor={editor} />}
-            <div className={styles.editorHeader} style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
-                <input
-                    className={styles.titleInput}
-                    value={activeNote.title}
-                    onChange={(e) => user && updateNote(user.uid, activeNote.id, { title: e.target.value })}
-                    placeholder="Note Title"
-                    style={{ flex: 1 }}
-                    disabled={isTrash}
-                />
+            {!isTrash && !isMinimal && <EditorToolbar editor={editor} />}
+            {!isMinimal && (
+                <div className={styles.editorHeader} style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingRight: '1rem' }}>
+                    <input
+                        className={styles.titleInput}
+                        value={activeNote.title}
+                        onChange={(e) => user && updateNote(user.uid, activeNote.id, { title: e.target.value })}
+                        placeholder="Note Title"
+                        style={{ flex: 1 }}
+                        disabled={isTrash}
+                    />
 
-                {/* Image Upload Input */}
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    style={{ display: 'none' }}
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                />
+                    {/* Image Upload Input */}
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        style={{ display: 'none' }}
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                    />
 
-                <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isExtracting || isTrash}
-                    className={styles.toolbarButton}
-                    title="Upload image to extract text"
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '8px', background: 'var(--color-bg-secondary)', color: 'var(--color-text-main)', border: '1px solid var(--color-border)', cursor: (isExtracting || isTrash) ? 'default' : 'pointer', opacity: (isExtracting || isTrash) ? 0.7 : 1 }}
-                >
-                    {isExtracting ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18} />}
-                    <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{isExtracting ? (statusText || 'Processing...') : 'Scan Image'}</span>
-                </button>
-            </div>
-            <EditorContent editor={editor} className={styles.editorContent} />
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isExtracting || isTrash}
+                        className={styles.toolbarButton}
+                        title="Upload image to extract text"
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '8px', background: 'var(--color-bg-secondary)', color: 'var(--color-text-main)', border: '1px solid var(--color-border)', cursor: (isExtracting || isTrash) ? 'default' : 'pointer', opacity: (isExtracting || isTrash) ? 0.7 : 1 }}
+                    >
+                        {isExtracting ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18} />}
+                        <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{isExtracting ? (statusText || 'Processing...') : 'Scan Image'}</span>
+                    </button>
+                </div>
+            )}
+            <EditorContent
+                editor={editor}
+                className={styles.editorContent}
+                style={isMinimal ? { padding: 0, fontSize: 'inherit', lineHeight: 'inherit' } : {}}
+            />
         </div>
     );
 }

@@ -3,6 +3,7 @@ import {
     collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp, deleteField
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { deleteAllStudyDataForNote } from './useStudyStore';
 
 // folderId is optional for backwards compatibility
 export interface Note {
@@ -154,13 +155,21 @@ export const useNoteStore = create<NoteState>((set, get) => ({
     },
 
     permanentlyDeleteNote: async (uid, id) => {
+        // Clean up flashcards & tests subcollections first, then delete the note doc
+        await deleteAllStudyDataForNote(uid, id);
         await deleteDoc(doc(db, `users/${uid}/notes`, id));
     },
 
     emptyTrash: async (uid) => {
-        const { notes, permanentlyDeleteNote } = get();
+        const { notes } = get();
         const trashedNotes = notes.filter(n => n.deletedAt);
-        await Promise.all(trashedNotes.map(n => permanentlyDeleteNote(uid, n.id)));
+        // Delete study data and note doc for each trashed note in parallel
+        await Promise.all(
+            trashedNotes.map(n =>
+                deleteAllStudyDataForNote(uid, n.id)
+                    .then(() => deleteDoc(doc(db, `users/${uid}/notes`, n.id)))
+            )
+        );
     },
 
     resetAllStats: async (uid: string) => {

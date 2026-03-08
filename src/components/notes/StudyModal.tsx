@@ -113,23 +113,26 @@ export function StudyModal({ isOpen, onClose, noteId, noteContent }: StudyModalP
 
         setIsGenerating(true);
         try {
+            const flashcardSystemInstruction = "You are an expert instructional designer. Your goal is to create flashcards that are high-fidelity to the user's provided text. You avoid hallucinating external information and ensure all flashcard fronts and backs are grounded strictly in the provided content.";
+
             const countInstruction = cardCount === 'auto'
                 ? "Do NOT limit the number of flashcards. Create as many as necessary to fully cover the material (e.g., 20, 30, 50+ if needed)."
                 : `Create exactly ${cardCount} flashcards.`;
 
-            const prompt = `Create a comprehensive deck of flashcards based on the following text.
+            const prompt = `Create a comprehensive deck of flashcards based ONLY on the following text.
                 Return a JSON array of objects, where each object has "front" and "back" properties.
                 
                 CRITICAL INSTRUCTIONS:
-                1. Cover every key concept, definition, useful detail, and potential test question found in the text.
-                2. ${countInstruction}
-                3. Ensure the flashcards are suitable for deep learning, not just surface-level review.
-                4. ${customInstructions ? `USER CUSTOM INSTRUCTIONS: ${customInstructions}` : ''}
-                5. Do not include markdown formatting. Just raw JSON.
+                1. GROUNDING: The provided text is the EXCLUSIVE source of truth. DO NOT include information not found in the text.
+                2. ACCURACY: Every flashcard must be directly derived from the provided text.
+                3. ${countInstruction}
+                4. Ensure the flashcards are suitable for deep learning, not just surface-level review.
+                5. ${customInstructions ? `USER CUSTOM INSTRUCTIONS: ${customInstructions}` : ''}
+                6. Do not include markdown formatting. Just raw JSON.
                 
                 Text: ${noteContent}`;
 
-            const response = await generateContent(geminiApiKeys, prompt);
+            const response = await generateContent(geminiApiKeys, prompt, flashcardSystemInstruction);
 
             // Allow for markdown code block stripping just in case
             const cleanResponse = response.replace(/```json/g, '').replace(/```/g, '').trim();

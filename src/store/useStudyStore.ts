@@ -5,9 +5,34 @@ import {
     writeBatch,
     doc,
     updateDoc,
-    increment
+    increment,
+    getDocs
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+
+/**
+ * Standalone helper — permanently deletes ALL flashcards and tests stored
+ * under a note's subcollections. Safe to call without an active subscription.
+ */
+export async function deleteAllStudyDataForNote(uid: string, noteId: string): Promise<void> {
+    const batch = writeBatch(db);
+
+    const flashcardsRef = collection(db, `users/${uid}/notes/${noteId}/flashcards`);
+    const testsRef = collection(db, `users/${uid}/notes/${noteId}/tests`);
+
+    const [flashcardsSnap, testsSnap] = await Promise.all([
+        getDocs(flashcardsRef),
+        getDocs(testsRef)
+    ]);
+
+    flashcardsSnap.docs.forEach(d => batch.delete(d.ref));
+    testsSnap.docs.forEach(d => batch.delete(d.ref));
+
+    // Only commit if there's something to delete
+    if (!flashcardsSnap.empty || !testsSnap.empty) {
+        await batch.commit();
+    }
+}
 
 export interface Flashcard {
     id: string;

@@ -37,17 +37,21 @@ export function MatchingModal({ isOpen, onClose, noteId, noteContent }: Matching
 
         setIsGenerating(true);
         try {
-            const prompt = `Create a matching game dataset from the following text.
+            const gameSystemInstruction = "You are an expert game designer. Your goal is to create matching pairs that are high-fidelity to the user's provided text. You avoid hallucinating external information and ensure all pairs are grounded strictly in the provided content.";
+
+            const prompt = `Create a matching game dataset based ONLY on the following text.
                 Return a JSON array of objects, where each object has "front" (term/question) and "back" (definition/answer) properties.
                 Create at least 15 pairs if possible.
                 
                 CRITICAL INSTRUCTIONS:
-                1. Focus on key terms and their definitions.
-                2. Do not include markdown formatting. Just raw JSON.
+                1. GROUNDING: The provided text is the EXCLUSIVE source of truth. DO NOT include information not found in the text.
+                2. ACCURACY: Every pair must be directly derived from the provided text.
+                3. Focus on key terms and their definitions.
+                4. Do not include markdown formatting. Just raw JSON.
                 
                 Text: ${noteContent}`;
 
-            const response = await generateContent(geminiApiKeys, prompt);
+            const response = await generateContent(geminiApiKeys, prompt, gameSystemInstruction);
 
             // Allow for markdown code block stripping just in case
             const cleanResponse = response.replace(/```json/g, '').replace(/```/g, '').trim();

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import RGL, { WidthProvider, Responsive } from 'react-grid-layout';
+import RGL, { Responsive } from 'react-grid-layout';
+const WidthProvider = (RGL as any).WidthProvider || ((c: any) => c);
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { useWidgetStore } from '../store/useWidgetStore';

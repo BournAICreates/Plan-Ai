@@ -20,7 +20,7 @@ interface TaskState {
     loading: boolean;
     unsubscribe: (() => void) | null;
     subscribe: (uid: string) => void;
-    addTask: (uid: string, task: Omit<Task, 'id'>) => Promise<void>;
+    addTask: (uid: string, task: Omit<Task, 'id'>) => Promise<string>;
     toggleStatus: (uid: string, id: string, status: Task['status']) => Promise<void>;
     deleteTask: (uid: string, id: string) => Promise<void>;
     updateTaskOrder: (uid: string, id: string, newOrder: number) => Promise<void>;
@@ -63,11 +63,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     addTask: async (uid, task) => {
         const now = Timestamp.now();
-        await addDoc(collection(db, `users/${uid}/tasks`), {
+        const docRef = await addDoc(collection(db, `users/${uid}/tasks`), {
             ...task,
             createdAt: now,
             order: now.toMillis() // Default order = timestamp
         });
+        return docRef.id;
     },
 
     toggleStatus: async (uid, id, status) => {

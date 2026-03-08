@@ -28,10 +28,10 @@ async function tryGenerate(apiKey: string, systemInstruction: string, prompt: st
     return response.text();
 }
 
-export async function generateContent(apiKeys: string[], prompt: string) {
+export async function generateContent(apiKeys: string[], prompt: string, customSystemInstruction?: string) {
     if (!apiKeys || apiKeys.length === 0) throw new Error("Gemini API Keys are missing.");
 
-    const systemInstruction = "You are a professional writing assistant. You output ONLY the requested content for a note. Never include conversational filler, preambles, conclusions, or meta-commentary. Your output must be ready to be inserted directly into a document editor.";
+    const systemInstruction = customSystemInstruction || "You are a professional writing assistant. You output ONLY the requested content for a note. Never include conversational filler, preambles, conclusions, or meta-commentary. Your output must be ready to be inserted directly into a document editor.";
     const fullPrompt = `Task: Generate content based on this user prompt. Output ONLY the raw content.\nUser Prompt: ${prompt}`;
 
     let lastError: any = null;

@@ -24,16 +24,33 @@ body {
     min-height: 100vh;
 }
 
-/* Responsive Scaling for smaller screens (e.g. Chromebooks) */
-@media (max-width: 1366px) {
+/* Responsive Scaling — adapts to all laptop/Chromebook screen sizes */
+@media (max-width: 1440px) {
     html {
         font-size: 15px;
     }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1280px) {
     html {
         font-size: 14px;
+    }
+}
+
+@media (max-width: 1024px) {
+    html {
+        font-size: 13px;
+    }
+
+    ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+}
+
+@media (max-width: 900px) {
+    html {
+        font-size: 12px;
     }
 }
 

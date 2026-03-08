@@ -2,25 +2,26 @@ import { useState, useEffect, useRef } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 import {
-    Plus, ArrowRight, Paperclip, MoreHorizontal, Settings,
-    User, FileText, Layers, HelpCircle, Command, X, LogOut, Key, Folder,
-    BookOpen, Clock, Headphones, Video, Brain, FileBox, FileStack,
-    Database, Layout as LayoutIcon, PenTool, Sparkles, FolderInput, Sun, Moon, Calendar, Trash2, Puzzle
+    Plus, ArrowRight, Paperclip,
+    User, FileText, Layers, Command, X, LogOut, Key, Folder,
+    BookOpen, Clock, Layout as LayoutIcon, PenTool, Sparkles, Sun, Moon, Calendar, Trash2, Coffee, Youtube
 } from 'lucide-react';
+import { YoutubeModal } from '../components/notes/YoutubeModal';
 import { auth } from '../lib/firebase';
 import { useNoteStore } from '../store/useNoteStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { StudyModal } from '../components/notes/StudyModal';
 import { TestModal } from '../components/notes/TestModal';
-import { NoteEditor } from '../components/notes/NoteEditor';
+
 import { useTheme } from '../contexts/ThemeContext';
 import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 
 import { MonthView } from '../components/calendar/MonthView';
 import { DashboardOverview } from './DashboardOverview';
 import { ActiveTasks } from '../components/dashboard/ActiveTasks';
-import { WeatherWidget } from '../components/dashboard/WeatherWidget';
+
 import { MatchingModal } from '../components/notes/MatchingModal';
+import { NoteEditor } from '../components/notes/NoteEditor';
 import { chatWithTutor, chatWithTutorMultimodal } from '../lib/gemini';
 import { Bot } from 'lucide-react';
 
@@ -29,39 +30,56 @@ import { Bot } from 'lucide-react';
 function formatMarkdown(text: string): string {
     if (!text) return '';
     let html = text
-        // Convert **bold** to <strong>
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        // Convert *italic* to <em>
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        // Convert ### headings
         .replace(/^### (.+)$/gm, '<div style="font-weight:700;font-size:0.9rem;margin:0.75rem 0 0.25rem">$1</div>')
-        // Convert ## headings
         .replace(/^## (.+)$/gm, '<div style="font-weight:700;font-size:0.95rem;margin:0.75rem 0 0.25rem">$1</div>')
-        // Convert numbered lists
         .replace(/^\d+\.\s+(.+)$/gm, '<div style="padding-left:1rem;margin:0.35rem 0">• $1</div>')
-        // Convert bullet points (- or *)
         .replace(/^[-*]\s+(.+)$/gm, '<div style="padding-left:1rem;margin:0.35rem 0">• $1</div>')
-        // Convert double newlines to spacing
         .replace(/\n\n/g, '<div style="height:0.6rem"></div>')
-        // Convert remaining single newlines to breaks
         .replace(/\n/g, '<br/>');
     return html;
 }
 
+/** 
+ * Wraps words in animated spans for a smooth fade-in effect.
+ * Only used for AI responses.
+ */
+function AnimateWords({ html }: { html: string }) {
+    // We'll split by spaces but preserve tags
+    // This is a simple approach: split text content while keeping HTML tags intact
+    const parts = html.split(/(<[^>]*>|\s+)/);
+    let delay = 0;
+
+    return (
+        <>
+            {parts.map((part, i) => {
+                if (part.startsWith('<')) {
+                    return <span key={i} dangerouslySetInnerHTML={{ __html: part }} />;
+                }
+                if (!part.trim()) {
+                    return <span key={i}>{part}</span>;
+                }
+
+                // For actual text content, wrap each word (or group) in an animation
+                delay += 0.03;
+                return (
+                    <span
+                        key={i}
+                        className={styles.aiWord}
+                        style={{ animationDelay: `${delay}s` }}
+                    >
+                        {part}
+                    </span>
+                );
+            })}
+        </>
+    );
+}
+
 import styles from '../components/dashboard/Dashboard.module.css';
 
-const STUDIO_ITEMS = [
-    { id: 'audio', label: 'Audio Overview', icon: Headphones },
-    { id: 'video', label: 'Video Overview', icon: Video },
-    { id: 'mindmap', label: 'Mind Map', icon: Brain },
-    { id: 'reports', label: 'Reports', icon: FileBox },
-    { id: 'flashcards', label: 'Flashcards', icon: Layers },
-    { id: 'quiz', label: 'Quiz', icon: HelpCircle },
-    { id: 'infographic', label: 'Infographic', icon: LayoutIcon },
-    { id: 'slide', label: 'Slide Deck', icon: FileStack },
-    { id: 'data', label: 'Data Table', icon: Database },
-    { id: 'matching', label: 'Matching Game', icon: Puzzle },
-];
+
 
 
 interface OverlayProps {
@@ -204,6 +222,114 @@ function FolderOverlay({ title, isOpen, onClose, items, onItemClick }: OverlayPr
 }
 
 
+/** Inline "Move to Folder" sub-menu inside the note right-click context menu */
+function NoteContextMoveMenu({ note, folders, onMove }: {
+    note: any;
+    folders: { id: string; name: string }[];
+    onMove: (folderId: string | undefined) => void;
+}) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <div>
+            <style>{`
+                @keyframes folderSlideIn {
+                    from { opacity: 0; max-height: 0; transform: translateY(-6px); }
+                    to   { opacity: 1; max-height: 400px; transform: translateY(0); }
+                }
+                .ncmm-list {
+                    animation: folderSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                    overflow: hidden;
+                }
+            `}</style>
+
+            {/* Trigger row */}
+            <button
+                onClick={() => setOpen(o => !o)}
+                style={{
+                    width: '100%', padding: '9px 14px', borderRadius: '9px',
+                    border: 'none', background: 'transparent', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-main)',
+                    transition: 'background 0.15s'
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-subtle)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Folder size={15} />
+                    Move to Folder
+                </span>
+                {/* Chevron rotates when open */}
+                <span style={{
+                    display: 'inline-block',
+                    transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s ease',
+                    opacity: 0.5,
+                    fontSize: '0.7rem',
+                    lineHeight: 1
+                }}>▾</span>
+            </button>
+
+            {/* Animated folder list */}
+            {open && (
+                <div className="ncmm-list" style={{ paddingBottom: '4px' }}>
+                    {/* Separator */}
+                    <div style={{ height: '1px', background: 'var(--color-border)', margin: '2px 10px 4px' }} />
+
+                    {/* Uncategorized option */}
+                    <button
+                        onClick={() => onMove(undefined)}
+                        style={{
+                            width: '100%', padding: '7px 14px 7px 24px',
+                            border: 'none', background: 'transparent', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '9px',
+                            fontSize: '0.82rem', fontWeight: 500, color: 'var(--color-text-muted)',
+                            borderRadius: '8px', transition: 'background 0.12s',
+                            opacity: !note.folderId ? 0.4 : 1,
+                            pointerEvents: !note.folderId ? 'none' : 'auto'
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-subtle)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                        <Layers size={13} style={{ opacity: 0.6 }} />
+                        Uncategorized
+                    </button>
+
+                    {/* Folder list */}
+                    {folders.map(folder => {
+                        const isCurrent = note.folderId === folder.id;
+                        return (
+                            <button
+                                key={folder.id}
+                                onClick={() => !isCurrent && onMove(folder.id)}
+                                style={{
+                                    width: '100%', padding: '7px 14px 7px 24px',
+                                    border: 'none', background: isCurrent ? 'var(--color-bg-subtle)' : 'transparent',
+                                    cursor: isCurrent ? 'default' : 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: '9px',
+                                    fontSize: '0.82rem', fontWeight: isCurrent ? 700 : 500,
+                                    color: isCurrent ? 'var(--color-primary)' : 'var(--color-text-main)',
+                                    borderRadius: '8px', transition: 'background 0.12s',
+                                    opacity: isCurrent ? 0.7 : 1,
+                                }}
+                                onMouseEnter={e => { if (!isCurrent) e.currentTarget.style.background = 'var(--color-bg-subtle)'; }}
+                                onMouseLeave={e => { if (!isCurrent) e.currentTarget.style.background = 'transparent'; }}
+                            >
+                                <Folder size={13} style={{ opacity: 0.7 }} />
+                                {folder.name}
+                                {isCurrent && (
+                                    <span style={{ marginLeft: 'auto', fontSize: '0.7rem', opacity: 0.6 }}>current</span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export function DashboardPage() {
 
 
@@ -243,7 +369,6 @@ export function DashboardPage() {
         }, 450);
     };
 
-    const [movingNoteId, setMovingNoteId] = useState<string | null>(null);
     const [noteToDelete, setNoteToDelete] = useState<any | null>(null);
 
     // New Folder Modal
@@ -256,6 +381,10 @@ export function DashboardPage() {
 
     // Note Context Menu
     const [noteContextMenu, setNoteContextMenu] = useState<{ x: number; y: number; note: any } | null>(null);
+    const [showRenameModal, setShowRenameModal] = useState(false);
+    const [renameNoteTitle, setRenameNoteTitle] = useState('');
+    const [noteToRename, setNoteToRename] = useState<any | null>(null);
+    const [showYoutubeModal, setShowYoutubeModal] = useState(false);
 
     const [tempKeys, setTempKeys] = useState<string[]>(['', '', '']);
 
@@ -277,8 +406,162 @@ export function DashboardPage() {
 
 
     const handleSendChat = async () => {
+        const trimmed = chatInput.trim();
+
+        // ── Slash Command: /new ───────────────────────────────────────────
+        if (/^\/new\s*$/i.test(trimmed)) {
+            setChatInput('');
+            const user = auth.currentUser;
+            if (user) {
+                addNote(user.uid, activeFolderId && activeFolderId !== 'all' ? activeFolderId : undefined);
+            }
+            return;
+        }
+        // ── Slash Command: /flashcards ──────────────────────────────────────
+        if (/^\/flashcards?\s*$/i.test(trimmed)) {
+            setChatInput('');
+            setOverlayType('flashcards');
+            return;
+        }
+        // ── Slash Command: /quiz ────────────────────────────────────────────
+        if (/^\/quiz\s*$/i.test(trimmed)) {
+            setChatInput('');
+            setOverlayType('quiz');
+            return;
+        }
+        // ── Slash Command: /matching ────────────────────────────────────────
+        if (/^\/matching\s*$/i.test(trimmed)) {
+            setChatInput('');
+            setOverlayType('matching');
+            return;
+        }
+
+        // ── Note Open Command ───────────────────────────────────────────────
+        // Matches: "open [the] <name> [note]", "show [me] [the] <name>", "find <name>"
+        const openNoteMatch = trimmed.match(
+            /^(?:open(?:\s+(?:up|the))?|show(?:\s+me)?(?:\s+the)?|find|go\s+to(?:\s+the)?|switch\s+to(?:\s+the)?)\s+(.+?)(?:\s+note)?$/i
+        );
+        if (openNoteMatch) {
+            const query = openNoteMatch[1].trim().toLowerCase();
+            const livNotes = useNoteStore.getState().notes.filter(n => !n.deletedAt);
+
+            // Priority: exact → starts-with → includes
+            const exact = livNotes.find(n => n.title?.toLowerCase() === query);
+            const startsWith = livNotes.find(n => n.title?.toLowerCase().startsWith(query));
+            const includes = livNotes.find(n => n.title?.toLowerCase().includes(query));
+            const found = exact || startsWith || includes;
+
+            // Post the user message visually
+            setMessages(prev => [...prev, {
+                id: Date.now().toString(),
+                role: 'user',
+                content: trimmed
+            }]);
+            setChatInput('');
+
+            if (found) {
+                setActiveNote(found.id);
+                setMessages(prev => [...prev, {
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    content: `✅ Opened **"${found.title || 'Untitled'}"** in the note viewer.`
+                }]);
+            } else {
+                const suggestions = livNotes
+                    .filter(n => n.title)
+                    .slice(0, 5)
+                    .map(n => `• ${n.title}`)
+                    .join('\n');
+                setMessages(prev => [...prev, {
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    content: `❌ Couldn't find a note matching **"${query}"**.${suggestions ? `\n\nAvailable notes:\n${suggestions}` : ' No notes found.'}`
+                }]);
+            }
+            return;
+        }
+
+        // ── List All Notes Command ──────────────────────────────────────────
+        // Matches: "what are my notes", "list my notes", "show all notes", "what notes do I have", etc.
+        const listAllMatch = /^(?:what\s+are\s+(?:my\s+)?(?:all\s+)?|list\s+(?:all\s+)?(?:my\s+)?|show\s+(?:all\s+)?(?:my\s+)?|what\s+notes\s+do\s+I\s+have|do\s+I\s+have\s+any\s+)notes?$/i.test(trimmed);
+        if (listAllMatch) {
+            const { notes: allNotes, folders: allFolders } = useNoteStore.getState();
+            const livNotes = allNotes.filter(n => !n.deletedAt);
+
+            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: trimmed }]);
+            setChatInput('');
+
+            if (livNotes.length === 0) {
+                setMessages(prev => [...prev, {
+                    id: (Date.now() + 1).toString(), role: 'assistant',
+                    content: "You don't have any notes yet. Click **+ New Note** in the left panel to create one!"
+                }]);
+            } else {
+                // Group by folder
+                const grouped: Record<string, string[]> = { Uncategorized: [] };
+                allFolders.forEach(f => { grouped[f.name] = []; });
+                livNotes.forEach(n => {
+                    const folder = allFolders.find(f => f.id === n.folderId);
+                    const key = folder ? folder.name : 'Uncategorized';
+                    grouped[key]?.push(n.title || 'Untitled');
+                });
+                const lines = Object.entries(grouped)
+                    .filter(([, notes]) => notes.length > 0)
+                    .map(([folder, nts]) =>
+                        `**${folder}** (${nts.length})\n${nts.map(t => `  • ${t}`).join('\n')}`
+                    ).join('\n\n');
+                setMessages(prev => [...prev, {
+                    id: (Date.now() + 1).toString(), role: 'assistant',
+                    content: `You have **${livNotes.length} note${livNotes.length !== 1 ? 's' : ''}**:\n\n${lines}`
+                }]);
+            }
+            return;
+        }
+
+        // ── List Notes In Folder Command ────────────────────────────────────
+        // Matches: "what notes are in Biology", "list notes in the Math folder", "show me notes in Science"
+        const listFolderMatch = trimmed.match(
+            /^(?:what\s+notes\s+are\s+in|list\s+notes\s+in(?:\s+the)?|show\s+(?:me\s+)?notes\s+in(?:\s+the)?|notes\s+in(?:\s+the)?)\s+(.+?)(?:\s+folder)?$/i
+        );
+        if (listFolderMatch) {
+            const folderQuery = listFolderMatch[1].trim().toLowerCase();
+            const { notes: allNotes, folders: allFolders } = useNoteStore.getState();
+
+            const folder = allFolders.find(f =>
+                f.name.toLowerCase() === folderQuery ||
+                f.name.toLowerCase().startsWith(folderQuery) ||
+                f.name.toLowerCase().includes(folderQuery)
+            );
+
+            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: trimmed }]);
+            setChatInput('');
+
+            if (!folder) {
+                const folderNames = allFolders.map(f => `• ${f.name}`).join('\n');
+                setMessages(prev => [...prev, {
+                    id: (Date.now() + 1).toString(), role: 'assistant',
+                    content: `❌ Couldn't find a folder matching **"${folderQuery}"**.${folderNames ? `\n\nYour folders:\n${folderNames}` : ' No folders yet.'}`
+                }]);
+            } else {
+                const folderNotes = allNotes.filter(n => !n.deletedAt && n.folderId === folder.id);
+                if (folderNotes.length === 0) {
+                    setMessages(prev => [...prev, {
+                        id: (Date.now() + 1).toString(), role: 'assistant',
+                        content: `The **${folder.name}** folder is empty. Try adding some notes to it!`
+                    }]);
+                } else {
+                    const noteList = folderNotes.map(n => `• ${n.title || 'Untitled'}`).join('\n');
+                    setMessages(prev => [...prev, {
+                        id: (Date.now() + 1).toString(), role: 'assistant',
+                        content: `**${folder.name}** has **${folderNotes.length} note${folderNotes.length !== 1 ? 's' : ''}**:\n\n${noteList}`
+                    }]);
+                }
+            }
+            return;
+        }
+
         const hasImages = attachedImages.length > 0;
-        if (!chatInput.trim() && !hasImages) return;
+        if (!trimmed && !hasImages) return;
         if (isChatLoading) return;
 
         const geminiApiKeys = useSettingsStore.getState().geminiApiKeys;
@@ -310,15 +593,25 @@ export function DashboardPage() {
             ${activeNote?.content || "(No note selected)"}
 
             CAPABILITIES:
-            1. Help research and answer questions.
-            2. Edit and organize the current note.
+            1. Research and answer questions.
+            2. EDIT, FORMAT, and ORGANIZE the current note.
+
+            STRICT FORMATTING RULES FOR NOTE UPDATES:
+            - You MUST follow the user's formatting requests exactly (e.g., "bold this", "list that").
+            - Use ONLY valid HTML tags inside the :::REPLACE_NOTE::: or :::INSERT_CONTENT::: blocks. 
+            - DO NOT use markdown shorthand like **bold** or - bullets inside these blocks. Use <strong> and <ul><li> instead.
+            - Ensure high-quality HTML output:
+                - Bold: <strong>key text</strong>
+                - Bullet Points: <ul><li>item</li></ul>
+                - Numbered Lists: <ol><li>step</li></ol>
+                - Headings: <h2>Topic</h2>
+                - Spacing: Use <p> or <br/>.
+            - If the user says "bold key terms", strictly wrap them in <strong> tags.
+            - If requested to "convert to a list", use the proper <ul> or <ol> tags.
 
             RESPONSE STYLE:
-            - Be concise. Use short sentences.
-            - Use bullet points and numbered lists when listing info.
-            - Bold key terms with **term**.
-            - Add line breaks between sections for readability.
-            - Avoid long paragraphs — prefer spaced-out, scannable formatting.
+            - Be concise in your chat response.
+            - Focus on delivering high-quality, perfectly formatted note updates.
             
             RETURN FORMAT:
             - If providing a FULL REPLACEMENT of the note, wrap HTML in :::REPLACE_NOTE_START::: and :::REPLACE_NOTE_END:::
@@ -394,8 +687,8 @@ export function DashboardPage() {
         }
     };
 
-    // Filter notes for Quizzes (those with testStats) and Flashcards (Total collection)
-    const quizNotes = notes.filter(n => n.testStats && n.testStats.testsTaken > 0);
+    // Show all non-deleted notes for Quizzes (so users can create new tests), and for Flashcards
+    const quizNotes = notes.filter(n => !n.deletedAt);
     const flashcardNotes = notes;
 
     // Filter notes for the sidebar list
@@ -609,109 +902,6 @@ export function DashboardPage() {
                                             {note.title || 'Untitled Note'}
                                         </span>
                                     </button>
-
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setMovingNoteId(movingNoteId === note.id ? null : note.id);
-                                        }}
-                                        style={{
-                                            background: 'transparent',
-                                            border: 'none',
-                                            padding: '6px',
-                                            cursor: 'pointer',
-                                            color: 'var(--color-text-muted)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            borderRadius: '6px',
-                                            transition: 'background 0.2s'
-                                        }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-bg-subtle)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                        title="Move to folder"
-                                    >
-                                        <FolderInput size={14} />
-                                    </button>
-
-                                    {movingNoteId === note.id && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            top: '100%',
-                                            right: '0.5rem',
-                                            width: '180px',
-                                            background: 'var(--color-bg-surface)',
-                                            border: '1px solid var(--color-border)',
-                                            borderRadius: '10px',
-                                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                                            zIndex: 100,
-                                            padding: '4px',
-                                            marginTop: '4px'
-                                        }}>
-                                            <div style={{ padding: '8px 12px', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                                Move to Folder
-                                            </div>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const user = auth.currentUser;
-                                                    if (user) updateNote(user.uid, note.id, { folderId: undefined });
-                                                    setMovingNoteId(null);
-                                                }}
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '8px 12px',
-                                                    fontSize: '0.8rem',
-                                                    textAlign: 'left',
-                                                    background: 'transparent',
-                                                    border: 'none',
-                                                    borderRadius: '6px',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '10px',
-                                                    color: 'var(--color-text-main)'
-                                                }}
-                                                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-bg-subtle)'}
-                                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                            >
-                                                <Layers size={14} style={{ opacity: 0.7 }} />
-                                                Uncategorized
-                                            </button>
-                                            <div style={{ height: '1px', background: 'var(--color-border)', margin: '4px 0' }} />
-                                            <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                                                {folders.map(folder => (
-                                                    <button
-                                                        key={folder.id}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const user = auth.currentUser;
-                                                            if (user) updateNote(user.uid, note.id, { folderId: folder.id });
-                                                            setMovingNoteId(null);
-                                                        }}
-                                                        style={{
-                                                            width: '100%',
-                                                            padding: '8px 12px',
-                                                            fontSize: '0.8rem',
-                                                            textAlign: 'left',
-                                                            background: 'transparent',
-                                                            border: 'none',
-                                                            borderRadius: '6px',
-                                                            cursor: 'pointer',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '10px',
-                                                            color: 'var(--color-text-main)'
-                                                        }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-bg-subtle)'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                                    >
-                                                        <Folder size={14} style={{ opacity: 0.7 }} />
-                                                        {folder.name}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             ))}
                             {filteredSidebarNotes.length === 0 && (
@@ -729,224 +919,15 @@ export function DashboardPage() {
 
                 </aside>
 
+                {/* ── CENTER PANEL: AI Chat ── */}
                 <section className={styles.centerPanel} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ flex: 1, overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                        {notes.find(n => n.id === activeNoteId) ? (
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
-                                <button
-                                    onClick={() => setActiveNote(undefined)}
-                                    style={{
-                                        position: 'absolute',
-                                        top: '1.5rem',
-                                        right: '1.5rem',
-                                        zIndex: 10,
-                                        background: 'var(--color-bg-subtle)',
-                                        border: '1px solid var(--color-border)',
-                                        borderRadius: '50%',
-                                        width: '32px',
-                                        height: '32px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        cursor: 'pointer',
-                                        color: 'var(--color-text-muted)',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-                                    }}
-                                >
-                                    <X size={18} />
-                                </button>
-                                <NoteEditor />
 
 
-                            </div>
-                        ) : (
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', position: 'relative' }}>
-                                <div className={styles.panelHeader} style={{ padding: '1.5rem', position: 'relative', zIndex: 2 }}>
-                                    <h2 className={styles.panelTitle}>Note</h2>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <Settings size={18} style={{ color: 'var(--color-text-muted)' }} />
-                                        <MoreHorizontal size={18} style={{ color: 'var(--color-text-muted)' }} />
-                                    </div>
-                                </div>
-
-                                {/* Foreground content */}
-                                <div className={styles.emptyChat} style={{ flex: 1, position: 'relative', zIndex: 1 }}>
-                                    <div style={{
-                                        width: '280px',
-                                        marginBottom: '2rem',
-                                        pointerEvents: 'auto',
-                                        opacity: 1
-                                    }}>
-                                        <WeatherWidget />
-                                    </div>
-                                    <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem' }}>Start By Opening a Note</h1>
-                                    <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
-                                        Select a note from the sidebar or create a new one
-                                    </p>
-
-                                </div>
-                            </div>
-                        )}
-
-                    </div>
-
-                    {/* Attached Image Previews */}
-                    {attachedImages.length > 0 && (
-                        <div style={{
-                            margin: '0 1.5rem', padding: '0.5rem 0.75rem',
-                            display: 'flex', gap: '0.5rem', flexWrap: 'wrap',
-                            background: 'var(--color-bg-subtle)', borderRadius: '12px 12px 0 0',
-                            borderBottom: 'none'
-                        }}>
-                            {attachedImages.map((img, i) => (
-                                <div key={i} style={{ position: 'relative' }}>
-                                    <img
-                                        src={img.preview}
-                                        alt={`Attached ${i + 1}`}
-                                        style={{
-                                            width: '48px', height: '48px', borderRadius: '8px',
-                                            objectFit: 'cover', border: '2px solid var(--color-border)'
-                                        }}
-                                    />
-                                    <button
-                                        onClick={() => setAttachedImages(prev => prev.filter((_, idx) => idx !== i))}
-                                        style={{
-                                            position: 'absolute', top: '-6px', right: '-6px',
-                                            width: '18px', height: '18px', borderRadius: '50%',
-                                            background: '#ef4444', color: 'white', border: 'none',
-                                            cursor: 'pointer', display: 'flex', alignItems: 'center',
-                                            justifyContent: 'center', fontSize: '10px', fontWeight: 700,
-                                            lineHeight: 1, padding: 0
-                                        }}
-                                    >×</button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    {/* AI Chat Input */}
-                    <div style={{
-                        margin: '0 1.5rem 1.5rem', flexShrink: 0,
-                        border: '2px solid var(--color-border)',
-                        borderRadius: attachedImages.length > 0 ? '0 0 16px 16px' : '16px',
-                        padding: '0.5rem 0.5rem 0.5rem 1rem',
-                        background: 'var(--color-bg-surface)',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-                        transition: 'border-color 0.2s, box-shadow 0.2s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem'
-                    }}
-                        onFocus={(e) => {
-                            e.currentTarget.style.borderColor = 'var(--color-primary)';
-                            e.currentTarget.style.boxShadow = '0 4px 20px rgba(99, 102, 241, 0.1)';
-                        }}
-                        onBlur={(e) => {
-                            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                                e.currentTarget.style.borderColor = 'var(--color-border)';
-                                e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.04)';
-                            }
-                        }}
-                    >
-                        <button
-                            onClick={() => {
-                                const input = document.createElement('input');
-                                input.type = 'file';
-                                input.multiple = true;
-                                input.accept = 'image/*,.txt,.pdf,.doc,.docx,.md,.csv,.json';
-                                input.onchange = () => {
-                                    if (input.files) {
-                                        Array.from(input.files).forEach(file => {
-                                            if (file.type.startsWith('image/')) {
-                                                const reader = new FileReader();
-                                                reader.onload = () => {
-                                                    const base64 = reader.result as string;
-                                                    setAttachedImages(prev => [...prev, {
-                                                        data: base64,
-                                                        mimeType: file.type,
-                                                        preview: base64
-                                                    }]);
-                                                };
-                                                reader.readAsDataURL(file);
-                                            }
-                                        });
-                                    }
-                                };
-                                input.click();
-                            }}
-                            title="Attach files"
-                            style={{
-                                background: 'transparent', border: 'none', cursor: 'pointer',
-                                padding: '6px', borderRadius: '8px', display: 'flex',
-                                alignItems: 'center', justifyContent: 'center',
-                                color: 'var(--color-text-muted)', transition: 'color 0.2s, background 0.2s'
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-primary)'; e.currentTarget.style.background = 'var(--color-bg-subtle)'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.background = 'transparent'; }}
-                        >
-                            <Paperclip size={18} />
-                        </button>
-                        <input
-                            style={{
-                                flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                                padding: '0.6rem 0', color: 'var(--color-text-main)', fontSize: '0.95rem',
-                                fontFamily: 'inherit'
-                            }}
-                            placeholder="Ask the AI anything..."
-                            value={chatInput}
-                            onChange={(e) => setChatInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSendChat();
-                            }}
-                        />
-                        <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', opacity: 0.6 }}>{notes.length} sources</span>
-                        <button
-                            onClick={handleSendChat}
-                            disabled={(!chatInput.trim() && attachedImages.length === 0) || isChatLoading}
-                            style={{
-                                width: 36, height: 36, borderRadius: '12px',
-                                background: (chatInput.trim() || attachedImages.length > 0) ? 'linear-gradient(135deg, var(--color-primary), #6366f1)' : 'var(--color-bg-tertiary)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
-                                border: 'none', cursor: (chatInput.trim() || attachedImages.length > 0) ? 'pointer' : 'default',
-                                transition: 'all 0.2s', flexShrink: 0,
-                                boxShadow: (chatInput.trim() || attachedImages.length > 0) ? '0 4px 12px rgba(99, 102, 241, 0.3)' : 'none'
-                            }}
-                        >
-                            <ArrowRight size={18} />
-                        </button>
-                    </div>
-                </section>
-
-
-                {/* Right Panel: Studio (RESTORED) */}
-                <aside className={styles.sidePanel}>
-                    <div className={styles.panelHeader}>
-                        <h2 className={styles.panelTitle}>Studio</h2>
-                        <LayoutIcon size={18} style={{ color: 'var(--color-text-muted)' }} />
-                    </div>
-
-                    <div className={styles.studioGrid} style={{ flex: messages.length > 0 ? '0 0 auto' : '1 1 auto' }}>
-                        {STUDIO_ITEMS.map((item) => (
-                            <div
-                                key={item.id}
-                                className={styles.studioCard}
-                                onClick={() => {
-                                    if (item.id === 'quiz') setOverlayType('quiz');
-                                    else if (item.id === 'flashcards') setOverlayType('flashcards');
-                                    else if (item.id === 'matching') setOverlayType('matching');
-                                }}
-                            >
-                                <item.icon className={styles.studioCardIcon} size={16} />
-                                <span className={styles.studioCardLabel}>{item.label}</span>
-                            </div>
-                        ))}
-                    </div>
-
+                    {/* Chat message history */}
                     <div style={{
                         flex: 1, overflowY: 'auto', padding: '1rem',
                         display: 'flex', flexDirection: 'column', gap: '1rem',
-                        border: '1px solid rgba(0, 0, 0, 0.8)',
-                        borderRadius: '14px',
-                        margin: '1rem 0.75rem 0.75rem',
+                        margin: '0 0 0.75rem',
                         background: 'var(--color-bg-subtle)'
                     }}>
                         {messages.length === 0 ? (
@@ -999,10 +980,9 @@ export function DashboardPage() {
                                                 </div>
                                             )}
                                             {msg.role === 'assistant' ? (
-                                                <div
-                                                    style={{ lineHeight: 1.7 }}
-                                                    dangerouslySetInnerHTML={{ __html: formatMarkdown(msg.content) }}
-                                                />
+                                                <div style={{ lineHeight: 1.7 }}>
+                                                    <AnimateWords html={formatMarkdown(msg.content)} />
+                                                </div>
                                             ) : (
                                                 msg.content
                                             )}
@@ -1028,16 +1008,335 @@ export function DashboardPage() {
                                     </div>
                                 ))}
                                 {isChatLoading && (
-                                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                        <div style={{ width: '28px', height: '28px', background: 'var(--color-bg-tertiary)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Bot size={14} /></div>
-                                        <div className={styles.loadingDots}><span></span><span></span><span></span></div>
+                                    <div className={styles.coffeeLoader}>
+                                        <div className={styles.coffeeIconBox}>
+                                            <div className={styles.coffeeSteam}>♨</div>
+                                            <div className={styles.coffeeCup}>
+                                                <Coffee size={32} />
+                                                <div className={styles.coffeeLiquid}></div>
+                                            </div>
+                                        </div>
+                                        <div className={styles.coffeeText}>
+                                            Brewing response<span className={styles.coffeeGlow}>...</span>
+                                        </div>
                                     </div>
                                 )}
                                 <div ref={messagesEndRef} />
                             </>
                         )}
                     </div>
+
+                    {/* Attached Image Previews */}
+                    {attachedImages.length > 0 && (
+                        <div style={{
+                            margin: '0 1.25rem', padding: '0.5rem 0.75rem',
+                            display: 'flex', gap: '0.5rem', flexWrap: 'wrap',
+                            background: 'var(--color-bg-subtle)', borderRadius: '12px 12px 0 0',
+                            borderBottom: 'none'
+                        }}>
+                            {attachedImages.map((img, i) => (
+                                <div key={i} style={{ position: 'relative' }}>
+                                    <img
+                                        src={img.preview}
+                                        alt={`Attached ${i + 1}`}
+                                        style={{
+                                            width: '48px', height: '48px', borderRadius: '8px',
+                                            objectFit: 'cover', border: '2px solid var(--color-border)'
+                                        }}
+                                    />
+                                    <button
+                                        onClick={() => setAttachedImages(prev => prev.filter((_, idx) => idx !== i))}
+                                        style={{
+                                            position: 'absolute', top: '-6px', right: '-6px',
+                                            width: '18px', height: '18px', borderRadius: '50%',
+                                            background: '#ef4444', color: 'white', border: 'none',
+                                            cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                            justifyContent: 'center', fontSize: '10px', fontWeight: 700,
+                                            lineHeight: 1, padding: 0
+                                        }}
+                                    >×</button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {/* Slash Command Autocomplete */}
+                    {chatInput.startsWith('/') && (() => {
+                        const q = chatInput.slice(1).toLowerCase();
+                        const SLASH_COMMANDS: { cmd: string; label: string; desc: string; icon: string; action?: () => void; overlay?: 'quiz' | 'flashcards' | 'matching' }[] = [
+                            {
+                                cmd: 'new', label: 'New Note', desc: 'Create a fresh note', icon: '📝', action: () => {
+                                    const user = auth.currentUser;
+                                    if (user) addNote(user.uid, activeFolderId && activeFolderId !== 'all' ? activeFolderId : undefined);
+                                }
+                            },
+                            { cmd: 'flashcards', label: 'Flashcards', desc: 'Open flashcard study set', icon: '🃏', overlay: 'flashcards' },
+                            { cmd: 'quiz', label: 'Quiz', desc: 'Open practice quiz', icon: '❓', overlay: 'quiz' },
+                            { cmd: 'matching', label: 'Matching', desc: 'Open matching game', icon: '🧩', overlay: 'matching' },
+                        ];
+                        const matches = SLASH_COMMANDS.filter(c => c.cmd.startsWith(q));
+                        if (matches.length === 0) return null;
+                        return (
+                            <div style={{
+                                margin: '0 1.25rem 0',
+                                background: 'var(--color-bg-surface)',
+                                border: '1.5px solid var(--color-primary)',
+                                borderBottom: 'none',
+                                borderRadius: '14px 14px 0 0',
+                                padding: '6px 6px 4px',
+                                boxShadow: '0 -6px 24px rgba(99,102,241,0.13)',
+                                animation: 'slashIn 0.15s cubic-bezier(0.16,1,0.3,1)',
+                            }}>
+                                <style>{`
+                                    @keyframes slashIn {
+                                        from { opacity: 0; transform: translateY(8px); }
+                                        to   { opacity: 1; transform: translateY(0); }
+                                    }
+                                `}</style>
+                                <div style={{ padding: '0 6px 4px', fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+                                    Commands
+                                </div>
+                                {matches.map(c => (
+                                    <button
+                                        key={c.cmd}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            setChatInput('');
+                                            if (c.action) c.action();
+                                            if (c.overlay) setOverlayType(c.overlay);
+                                        }}
+                                        style={{
+                                            width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+                                            padding: '7px 10px', borderRadius: '9px', border: 'none',
+                                            background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                                            marginBottom: '2px', transition: 'background 0.12s'
+                                        }}
+                                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-subtle)')}
+                                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                    >
+                                        <span style={{ fontSize: '1.05rem', width: '22px', textAlign: 'center', flexShrink: 0 }}>{c.icon}</span>
+                                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary)', fontFamily: 'monospace' }}>/{c.cmd}</span>
+                                        <span style={{ fontSize: '0.77rem', color: 'var(--color-text-muted)', marginLeft: '4px' }}>— {c.desc}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        );
+                    })()}
+
+                    {/* AI Chat Input */}
+                    <div style={{
+                        margin: '0 1.25rem 1.25rem', flexShrink: 0,
+                        border: '1.5px solid #cbd5e1',
+                        borderRadius: (chatInput.startsWith('/') || attachedImages.length > 0) ? '0 0 16px 16px' : '16px',
+                        padding: '0.5rem 0.5rem 0.5rem 1rem',
+                        background: '#ffffff',
+                        boxShadow: '0 0 0 0.5px #cbd5e1, 0 2px 12px rgba(0,0,0,0.04)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                    }}
+                        onFocus={(e) => {
+                            e.currentTarget.style.borderWidth = '1px';
+                            e.currentTarget.style.borderColor = '#000000';
+                            e.currentTarget.style.boxShadow = '0 0 0 0.5px #000000, 0 4px 15px rgba(0, 0, 0, 0.05)';
+                            const input = e.currentTarget.querySelector('input');
+                            if (input) input.style.fontWeight = '400';
+                        }}
+                        onBlur={(e) => {
+                            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                e.currentTarget.style.borderWidth = '1.5px';
+                                e.currentTarget.style.borderColor = '#cbd5e1';
+                                e.currentTarget.style.boxShadow = '0 0 0 0.5px #cbd5e1, 0 2px 12px rgba(0,0,0,0.04)';
+                                const input = e.currentTarget.querySelector('input');
+                                if (input) input.style.fontWeight = '500';
+                            }
+                        }}
+                    >
+                        <button
+                            onClick={() => {
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.multiple = true;
+                                input.accept = 'image/*,.txt,.pdf,.doc,.docx,.md,.csv,.json';
+                                input.onchange = () => {
+                                    if (input.files) {
+                                        Array.from(input.files).forEach(file => {
+                                            if (file.type.startsWith('image/')) {
+                                                const reader = new FileReader();
+                                                reader.onload = () => {
+                                                    const base64 = reader.result as string;
+                                                    setAttachedImages(prev => [...prev, {
+                                                        data: base64,
+                                                        mimeType: file.type,
+                                                        preview: base64
+                                                    }]);
+                                                };
+                                                reader.readAsDataURL(file);
+                                            }
+                                        });
+                                    }
+                                };
+                                input.click();
+                            }}
+                            title="Attach files"
+                            style={{
+                                background: 'transparent', border: 'none', cursor: 'pointer',
+                                padding: '6px', borderRadius: '8px', display: 'flex',
+                                alignItems: 'center', justifyContent: 'center',
+                                color: 'var(--color-text-muted)', transition: 'color 0.2s, background 0.2s'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-primary)'; e.currentTarget.style.background = 'var(--color-bg-subtle)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.background = 'transparent'; }}
+                        >
+                            <Paperclip size={18} />
+                        </button>
+                        <input
+                            style={{
+                                flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                                padding: '0.6rem 0', color: 'var(--color-text-main)', fontSize: '0.95rem',
+                                fontFamily: 'inherit', fontWeight: '500'
+                            }}
+                            placeholder="Ask anything… or type / for commands"
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSendChat();
+                                if (e.key === 'Escape') setChatInput('');
+                            }}
+                        />
+                        <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', opacity: 0.6 }}>{notes.length} sources</span>
+                        <button
+                            onClick={handleSendChat}
+                            disabled={(!chatInput.trim() && attachedImages.length === 0) || isChatLoading}
+                            style={{
+                                width: 36, height: 36, borderRadius: '12px',
+                                background: (chatInput.trim() || attachedImages.length > 0) ? 'linear-gradient(135deg, var(--color-primary), #6366f1)' : 'var(--color-bg-tertiary)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
+                                border: 'none', cursor: (chatInput.trim() || attachedImages.length > 0) ? 'pointer' : 'default',
+                                transition: 'all 0.2s', flexShrink: 0,
+                                boxShadow: (chatInput.trim() || attachedImages.length > 0) ? '0 4px 12px rgba(99, 102, 241, 0.3)' : 'none'
+                            }}
+                        >
+                            <ArrowRight size={18} />
+                        </button>
+                    </div>
+                </section>
+
+
+                {/* ── RIGHT PANEL: Note Viewer (Editable) ── */}
+                <aside className={styles.sidePanel}>
+                    <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                        {(() => {
+                            const activeNote = notes.find(n => n.id === activeNoteId);
+                            if (!activeNote) {
+                                return (
+                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', padding: '2rem', textAlign: 'center' }}>
+                                        <div style={{
+                                            width: '56px', height: '56px', borderRadius: '18px',
+                                            background: 'var(--color-bg-subtle)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            marginBottom: '0.5rem'
+                                        }}>
+                                            <BookOpen size={24} style={{ opacity: 0.35 }} />
+                                        </div>
+                                        <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>No Note Open</h3>
+                                        <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 }}>
+                                            Select or create a note<br />from the left panel
+                                        </p>
+                                    </div>
+                                );
+                            }
+                            return (
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0.75rem' }}>
+                                    {/* Local override for minimal editor text size/spacing */}
+                                    <style>{`
+                                        .minimal-note-view .ProseMirror {
+                                            font-size: 0.76rem !important;
+                                            line-height: 1.6 !important;
+                                            max-width: 100% !important;
+                                            margin: 0 !important;
+                                            padding: 0 !important;
+                                        }
+                                        .minimal-note-view .ProseMirror p {
+                                            margin-bottom: 0.75em !important;
+                                        }
+                                        .minimal-note-view .ProseMirror h1 { font-size: 1.2rem !important; margin-top: 1rem !important; }
+                                        .minimal-note-view .ProseMirror h2 { font-size: 1.1rem !important; margin-top: 0.8rem !important; }
+                                        .minimal-note-view .ProseMirror h3 { font-size: 1rem !important; margin-top: 0.6rem !important; }
+                                    `}</style>
+
+                                    {/* Note header row */}
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexShrink: 0 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <div style={{
+                                                width: '28px', height: '28px', borderRadius: '8px',
+                                                background: 'linear-gradient(135deg, var(--color-primary), #6366f1)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                color: 'white', flexShrink: 0
+                                            }}>
+                                                <BookOpen size={14} />
+                                            </div>
+                                            <span style={{
+                                                fontSize: '0.85rem', fontWeight: 700,
+                                                color: 'var(--color-text-main)',
+                                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                                maxWidth: '160px'
+                                            }}>
+                                                {activeNote.title || 'Untitled Note'}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <button
+                                                onClick={() => setShowYoutubeModal(true)}
+                                                style={{
+                                                    background: 'rgba(255, 0, 0, 0.05)',
+                                                    border: '1px solid rgba(255, 0, 0, 0.15)',
+                                                    borderRadius: '50%', width: '28px', height: '28px',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    cursor: 'pointer', color: '#FF0000', flexShrink: 0,
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 0, 0, 0.1)'}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255, 0, 0, 0.05)'}
+                                                title="Summarize YouTube Video"
+                                            >
+                                                <Youtube size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => setActiveNote(undefined)}
+                                                style={{
+                                                    background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)',
+                                                    borderRadius: '50%', width: '28px', height: '28px',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    cursor: 'pointer', color: 'var(--color-text-muted)', flexShrink: 0
+                                                }}
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Note content box - Editable */}
+                                    <div style={{
+                                        flex: 1,
+                                        overflowY: 'auto',
+                                        background: 'var(--color-bg-subtle)',
+                                        border: '1px solid var(--color-border)',
+                                        borderRadius: '14px',
+                                        padding: '0.85rem 1rem',
+                                        fontSize: '0.76rem',
+                                        lineHeight: 1.6,
+                                        color: 'var(--color-text-main)',
+                                        boxShadow: 'var(--shadow-sm)',
+                                    }} className="minimal-note-view">
+                                        <NoteEditor variant="minimal" />
+                                    </div>
+                                </div>
+                            );
+                        })()}
+                    </div>
                 </aside>
+
 
             </main>
 
@@ -1073,95 +1372,99 @@ export function DashboardPage() {
                 }}
             />
 
+            <YoutubeModal
+                isOpen={showYoutubeModal}
+                onClose={() => setShowYoutubeModal(false)}
+                onSubmit={async (content) => {
+                    const user = auth.currentUser;
+                    if (!user || !activeNoteId) return;
+                    const activeNote = notes.find(n => n.id === activeNoteId);
+                    if (!activeNote) return;
+                    const newContent = activeNote.content + content;
+                    await updateNote(user.uid, activeNoteId, { content: newContent });
+                }}
+            />
+
             {/* Study Modals */}
-            {
-                selectedStudyNote && (
-                    <StudyModal
-                        isOpen={!!selectedStudyNote}
-                        onClose={() => setSelectedStudyNote(null)}
-                        noteId={selectedStudyNote.id}
-                        noteContent={selectedStudyNote.content}
-                    />
-                )
-            }
+            {selectedStudyNote && (
+                <StudyModal
+                    isOpen={!!selectedStudyNote}
+                    onClose={() => setSelectedStudyNote(null)}
+                    noteId={selectedStudyNote.id}
+                    noteContent={selectedStudyNote.content}
+                />
+            )}
 
-            {
-                selectedTestNote && (
-                    <TestModal
-                        isOpen={!!selectedTestNote}
-                        onClose={() => setSelectedTestNote(null)}
-                        noteId={selectedTestNote.id}
-                        noteContent={selectedTestNote.content}
-                    />
-                )
-            }
-
-
+            {selectedTestNote && (
+                <TestModal
+                    isOpen={!!selectedTestNote}
+                    onClose={() => setSelectedTestNote(null)}
+                    noteId={selectedTestNote.id}
+                    noteContent={selectedTestNote.content}
+                />
+            )}
 
             {/* Settings Modal */}
-            {
-                showSettingsModal && (
-                    <div className={styles.modalOverlay}>
-                        <div className={styles.modalContent} style={{ width: '100%', maxWidth: '600px' }}>
-                            <div className={styles.panelHeader}>
-                                <h3 className={styles.panelTitle}>AI Configuration</h3>
-                                <X size={20} style={{ cursor: 'pointer' }} onClick={() => setShowSettingsModal(false)} />
-                            </div>
-                            <div style={{ marginTop: '1.5rem' }}>
-                                <label className={styles.panelTitle} style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem' }}>
-                                    Primary Gemini API Key
-                                </label>
-                                <input
-                                    type="password"
-                                    className={styles.input}
-                                    value={tempKeys[0]}
-                                    onChange={(e) => {
-                                        const newKeys = [...tempKeys];
-                                        newKeys[0] = e.target.value;
-                                        setTempKeys(newKeys);
-                                    }}
-                                    placeholder="Enter API Key"
-                                />
-                                <a
-                                    href="https://aistudio.google.com/app/apikey"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={{
-                                        color: 'var(--color-primary)',
-                                        fontSize: '0.75rem',
-                                        marginTop: '0.75rem',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        textDecoration: 'none',
-                                        fontWeight: 600
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                                    onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                                >
-                                    Get your Gemini API key from Google AI Studio
-                                    <Sparkles size={12} />
-                                </a>
+            {showSettingsModal && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modalContent} style={{ width: '100%', maxWidth: '600px' }}>
+                        <div className={styles.panelHeader}>
+                            <h3 className={styles.panelTitle}>AI Configuration</h3>
+                            <X size={20} style={{ cursor: 'pointer' }} onClick={() => setShowSettingsModal(false)} />
+                        </div>
+                        <div style={{ marginTop: '1.5rem' }}>
+                            <label className={styles.panelTitle} style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem' }}>
+                                Primary Gemini API Key
+                            </label>
+                            <input
+                                type="password"
+                                className={styles.input}
+                                value={tempKeys[0]}
+                                onChange={(e) => {
+                                    const newKeys = [...tempKeys];
+                                    newKeys[0] = e.target.value;
+                                    setTempKeys(newKeys);
+                                }}
+                                placeholder="Enter API Key"
+                            />
+                            <a
+                                href="https://aistudio.google.com/app/apikey"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    color: 'var(--color-primary)',
+                                    fontSize: '0.75rem',
+                                    marginTop: '0.75rem',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    textDecoration: 'none',
+                                    fontWeight: 600
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                                onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                            >
+                                Get your Gemini API key from Google AI Studio
+                                <Sparkles size={12} />
+                            </a>
 
-
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                                    <button className={styles.headerBtn} onClick={() => setShowSettingsModal(false)}>Cancel</button>
-                                    <button className={styles.saveBtn} onClick={() => {
-                                        const cleanKeys = tempKeys.filter(k => k.trim() !== '');
-                                        setGeminiApiKeys(cleanKeys);
-                                        setShowSettingsModal(false);
-                                    }}>Save</button>
-                                </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                                <button className={styles.headerBtn} onClick={() => setShowSettingsModal(false)}>Cancel</button>
+                                <button className={styles.saveBtn} onClick={() => {
+                                    const cleanKeys = tempKeys.filter((k: string) => k.trim() !== '');
+                                    setGeminiApiKeys(cleanKeys);
+                                    setShowSettingsModal(false);
+                                }}>Save</button>
                             </div>
                         </div>
                     </div>
-                )
-            }
+                </div>
+            )}
 
-            {
-                showPlanner && (
-                    <>
-                        <style>{`
+            {/* Planner Modal */}
+            {showPlanner && (
+                <>
+                    <style>{`
                         @keyframes coolVanish {
                             0% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
                             100% { opacity: 0; transform: scale(0.96) translateY(20px); filter: blur(8px); }
@@ -1173,107 +1476,76 @@ export function DashboardPage() {
                         .animate-vanish { animation: coolVanish 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
                         .animate-fadeout { animation: fadeOut 0.5s ease forwards; }
                     `}</style>
-                        <div style={{
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            backgroundColor: 'rgba(0,0,0,0.3)',
-                            backdropFilter: 'blur(8px)',
-                            zIndex: 1000,
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            justifyContent: 'center',
-                            padding: '4rem 1rem',
-                            overflowY: 'auto'
-                        }}
-                            className={isPlannerClosing ? 'animate-fadeout' : ''}
-                            onClick={handleClosePlanner}>
-                            <div
-                                className={isPlannerClosing ? 'animate-vanish' : 'animate-reveal'}
-                                style={{
-                                    width: '90%',
-                                    maxHeight: '90vh',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.75)',
-                                    borderRadius: '24px',
-                                    boxShadow: 'var(--shadow-2xl)',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    overflow: 'hidden',
-                                    position: 'relative',
-                                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                                    padding: '1rem'
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
-                                    <MonthView />
-                                </div>
+                    <div style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)',
+                        zIndex: 1000, display: 'flex', alignItems: 'flex-start',
+                        justifyContent: 'center', padding: '4rem 1rem', overflowY: 'auto'
+                    }}
+                        className={isPlannerClosing ? 'animate-fadeout' : ''}
+                        onClick={handleClosePlanner}
+                    >
+                        <div
+                            className={isPlannerClosing ? 'animate-vanish' : 'animate-reveal'}
+                            style={{
+                                width: '90%', maxHeight: '90vh',
+                                backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                                borderRadius: '24px', boxShadow: 'var(--shadow-2xl)',
+                                display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                                position: 'relative', border: '1px solid rgba(255, 255, 255, 0.3)', padding: '1rem'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
+                                <MonthView />
                             </div>
                         </div>
-                    </>
-                )
-            }
+                    </div>
+                </>
+            )}
 
-            {
-                showTasks && (
-                    <>
-                        <style>{`
-                        @keyframes coolVanish {
+            {/* Tasks Modal */}
+            {showTasks && (
+                <>
+                    <style>{`
+                        @keyframes coolVanish2 {
                             0% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
                             100% { opacity: 0; transform: scale(0.96) translateY(20px); filter: blur(8px); }
                         }
-                        @keyframes fadeOut {
+                        @keyframes fadeOut2 {
                             from { opacity: 1; }
                             to { opacity: 0; }
                         }
-                        .animate-vanish { animation: coolVanish 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-                        .animate-fadeout { animation: fadeOut 0.5s ease forwards; }
+                        .animate-vanish2 { animation: coolVanish2 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+                        .animate-fadeout2 { animation: fadeOut2 0.5s ease forwards; }
                     `}</style>
-                        <div style={{
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            backgroundColor: 'rgba(0,0,0,0.3)',
-                            backdropFilter: 'blur(8px)',
-                            zIndex: 1000,
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            justifyContent: 'center',
-                            padding: '4rem 1rem',
-                            overflowY: 'auto'
-                        }}
-                            className={isTasksClosing ? 'animate-fadeout' : ''}
-                            onClick={handleCloseTasks}>
-                            <div
-                                className={isTasksClosing ? 'animate-vanish' : 'animate-reveal'}
-                                style={{
-                                    width: '98%',
-                                    maxWidth: '1600px',
-                                    maxHeight: '90vh',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.75)',
-                                    borderRadius: '24px',
-                                    boxShadow: 'var(--shadow-2xl)',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    overflow: 'hidden',
-                                    position: 'relative',
-                                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                                    padding: '1rem'
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
-                                    <DashboardOverview />
-                                </div>
+                    <div style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)',
+                        zIndex: 1000, display: 'flex', alignItems: 'flex-start',
+                        justifyContent: 'center', padding: '4rem 1rem', overflowY: 'auto'
+                    }}
+                        className={isTasksClosing ? 'animate-fadeout2' : ''}
+                        onClick={handleCloseTasks}
+                    >
+                        <div
+                            className={isTasksClosing ? 'animate-vanish2' : 'animate-reveal'}
+                            style={{
+                                width: '98%', maxWidth: '1600px', maxHeight: '90vh',
+                                backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                                borderRadius: '24px', boxShadow: 'var(--shadow-2xl)',
+                                display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                                position: 'relative', border: '1px solid rgba(255, 255, 255, 0.3)', padding: '1rem'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
+                                <DashboardOverview />
                             </div>
                         </div>
-                    </>
-                )
-            }
+                    </div>
+                </>
+            )}
 
             <ConfirmationModal
                 isOpen={!!noteToDelete}
@@ -1394,6 +1666,90 @@ export function DashboardPage() {
                 </div>
             )}
 
+            {/* Rename Note Modal */}
+            {showRenameModal && (
+                <div
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}
+                    onClick={() => setShowRenameModal(false)}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.95)',
+                            backdropFilter: 'blur(20px)',
+                            borderRadius: '20px',
+                            padding: '2rem',
+                            width: '380px',
+                            boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
+                            animation: 'overlayPop 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                        }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem' }}>
+                            <div style={{
+                                width: '40px', height: '40px', borderRadius: '12px',
+                                background: 'linear-gradient(135deg, #10b981, #059669)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white'
+                            }}>
+                                <FileText size={20} />
+                            </div>
+                            <div>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Rename Note</h3>
+                                <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', margin: 0 }}>Update the title of your note</p>
+                            </div>
+                        </div>
+
+                        <input
+                            autoFocus
+                            value={renameNoteTitle}
+                            onChange={(e) => setRenameNoteTitle(e.target.value)}
+                            onKeyDown={async (e) => {
+                                if (e.key === 'Enter' && renameNoteTitle.trim() && noteToRename) {
+                                    const user = auth.currentUser;
+                                    if (user) await updateNote(user.uid, noteToRename.id, { title: renameNoteTitle.trim() });
+                                    setShowRenameModal(false);
+                                }
+                                if (e.key === 'Escape') setShowRenameModal(false);
+                            }}
+                            placeholder="Enter new title..."
+                            style={{
+                                width: '100%', padding: '0.75rem 1rem', borderRadius: '12px',
+                                border: '2px solid var(--color-border)', outline: 'none',
+                                fontSize: '0.95rem', background: 'var(--color-bg-subtle)',
+                                color: 'var(--color-text-main)', boxSizing: 'border-box'
+                            }}
+                        />
+
+                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
+                            <button
+                                onClick={() => setShowRenameModal(false)}
+                                style={{
+                                    padding: '8px 18px', borderRadius: '10px', border: '1px solid var(--color-border)',
+                                    background: 'transparent', color: 'var(--color-text-main)', cursor: 'pointer', fontWeight: 600
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (renameNoteTitle.trim() && noteToRename) {
+                                        const user = auth.currentUser;
+                                        if (user) await updateNote(user.uid, noteToRename.id, { title: renameNoteTitle.trim() });
+                                        setShowRenameModal(false);
+                                    }
+                                }}
+                                style={{
+                                    padding: '8px 18px', borderRadius: '10px', border: 'none',
+                                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                                    color: 'white', cursor: 'pointer', fontWeight: 700
+                                }}
+                            >
+                                Rename
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Folder Right-Click Context Menu */}
             {folderContextMenu && (
                 <div
@@ -1441,66 +1797,90 @@ export function DashboardPage() {
 
             {/* Note Right-Click Context Menu */}
             {noteContextMenu && (
-                <div
-                    style={{ position: 'fixed', inset: 0, zIndex: 9999 }}
-                    onClick={() => setNoteContextMenu(null)}
-                    onContextMenu={(e) => { e.preventDefault(); setNoteContextMenu(null); }}
-                >
+                <>
+                    <style>{`
+                        @keyframes folderSlideDown {
+                            from { opacity: 0; max-height: 0; transform: translateY(-4px); }
+                            to   { opacity: 1; max-height: 400px; transform: translateY(0); }
+                        }
+                        .folder-submenu-open {
+                            animation: folderSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                            overflow: hidden;
+                        }
+                    `}</style>
                     <div
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                            position: 'fixed',
-                            top: noteContextMenu.y,
-                            left: noteContextMenu.x,
-                            background: 'rgba(255, 255, 255, 0.95)',
-                            backdropFilter: 'blur(16px)',
-                            borderRadius: '12px',
-                            boxShadow: '0 8px 30px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05)',
-                            padding: '4px',
-                            minWidth: '170px',
-                            animation: 'fadeIn 0.15s ease-out',
-                            zIndex: 10000
-                        }}
+                        style={{ position: 'fixed', inset: 0, zIndex: 9999 }}
+                        onClick={() => { setNoteContextMenu(null); }}
+                        onContextMenu={(e) => { e.preventDefault(); setNoteContextMenu(null); }}
                     >
-                        <button
-                            onClick={() => {
-                                setMovingNoteId(noteContextMenu.note.id);
-                                setNoteContextMenu(null);
-                            }}
+                        <div
+                            onClick={(e) => e.stopPropagation()}
                             style={{
-                                width: '100%', padding: '8px 14px', borderRadius: '8px',
-                                border: 'none', background: 'transparent', cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', gap: '10px',
-                                fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-main)',
-                                transition: 'background 0.15s'
+                                position: 'fixed',
+                                top: noteContextMenu.y,
+                                left: noteContextMenu.x,
+                                background: 'rgba(255, 255, 255, 0.97)',
+                                backdropFilter: 'blur(20px)',
+                                borderRadius: '14px',
+                                boxShadow: '0 12px 40px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06)',
+                                padding: '5px',
+                                minWidth: '200px',
+                                animation: 'fadeIn 0.15s ease-out',
+                                zIndex: 10000
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-bg-subtle)'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                         >
-                            <Folder size={15} />
-                            Move to Folder
-                        </button>
-                        <div style={{ height: '1px', background: 'var(--color-border)', margin: '2px 8px' }} />
-                        <button
-                            onClick={() => {
-                                setNoteToDelete(noteContextMenu.note);
-                                setNoteContextMenu(null);
-                            }}
-                            style={{
-                                width: '100%', padding: '8px 14px', borderRadius: '8px',
-                                border: 'none', background: 'transparent', cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', gap: '10px',
-                                fontSize: '0.85rem', fontWeight: 600, color: '#ef4444',
-                                transition: 'background 0.15s'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                        >
-                            <Trash2 size={15} />
-                            Delete Note
-                        </button>
+                            <button
+                                onClick={() => {
+                                    setNoteToRename(noteContextMenu.note);
+                                    setRenameNoteTitle(noteContextMenu.note.title || '');
+                                    setShowRenameModal(true);
+                                    setNoteContextMenu(null);
+                                }}
+                                style={{
+                                    width: '100%', padding: '9px 14px', borderRadius: '9px',
+                                    border: 'none', background: 'transparent', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: '10px',
+                                    fontSize: '0.85rem', fontWeight: 500, color: 'var(--color-text-main)',
+                                    transition: 'background 0.15s'
+                                }}
+                                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-subtle)')}
+                                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                            >
+                                <PenTool size={15} />
+                                Rename Note
+                            </button>
+                            <div style={{ height: '1px', background: 'var(--color-border)', margin: '3px 8px' }} />
+                            <NoteContextMoveMenu
+                                note={noteContextMenu.note}
+                                folders={folders}
+                                onMove={(folderId) => {
+                                    const user = auth.currentUser;
+                                    if (user) updateNote(user.uid, noteContextMenu.note.id, { folderId });
+                                    setNoteContextMenu(null);
+                                }}
+                            />
+                            <div style={{ height: '1px', background: 'var(--color-border)', margin: '3px 8px' }} />
+                            <button
+                                onClick={() => {
+                                    setNoteToDelete(noteContextMenu.note);
+                                    setNoteContextMenu(null);
+                                }}
+                                style={{
+                                    width: '100%', padding: '9px 14px', borderRadius: '9px',
+                                    border: 'none', background: 'transparent', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: '10px',
+                                    fontSize: '0.85rem', fontWeight: 600, color: '#ef4444',
+                                    transition: 'background 0.15s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <Trash2 size={15} />
+                                Delete Note
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </>
             )}
 
             {/* Folder Delete Confirmation */}
@@ -1519,7 +1899,7 @@ export function DashboardPage() {
                 confirmText="Delete"
                 isDangerous={true}
             />
-        </div >
+        </div>
     );
 }
 

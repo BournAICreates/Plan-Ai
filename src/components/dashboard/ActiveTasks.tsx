@@ -13,6 +13,7 @@ export function ActiveTasks() {
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [newTaskPriority, setNewTaskPriority] = useState<'light' | 'medium' | 'urgent'>('medium');
     const [killingTaskIds, setKillingTaskIds] = useState<Set<string>>(new Set());
+    const [newlyCreatedIds, setNewlyCreatedIds] = useState<Set<string>>(new Set());
     const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
 
     // Filter and sort tasks (store already sorts by order desc, but we filter here)
@@ -52,13 +53,26 @@ export function ActiveTasks() {
         if (!newTaskTitle.trim() || !user) return;
 
         try {
-            await addTask(user.uid, {
+            const taskId = await addTask(user.uid, {
                 title: newTaskTitle,
                 status: 'todo',
                 priority: newTaskPriority,
                 category: activeTab,
                 dueDate: new Date()
             });
+
+            if (taskId) {
+                setNewlyCreatedIds(prev => new Set(prev).add(taskId));
+                // Remove from newlyCreated after animation finishes (0.4s + staggered delays)
+                setTimeout(() => {
+                    setNewlyCreatedIds(prev => {
+                        const next = new Set(prev);
+                        next.delete(taskId);
+                        return next;
+                    });
+                }, 1500);
+            }
+
             setNewTaskTitle('');
             setNewTaskPriority('medium');
             setShowAdd(false);
@@ -228,7 +242,19 @@ export function ActiveTasks() {
                             </button>
 
                             <span className={`${styles.taskTitle} ${isDone ? styles.completed : ''}`} style={{ flex: 1, fontSize: '0.95rem' }}>
-                                {task.title}
+                                {newlyCreatedIds.has(task.id) ? (
+                                    task.title.split(' ').map((word: string, i: number) => (
+                                        <span
+                                            key={i}
+                                            className={styles.taskWord}
+                                            style={{ animationDelay: `${i * 0.05}s` }}
+                                        >
+                                            {word}&nbsp;
+                                        </span>
+                                    ))
+                                ) : (
+                                    task.title
+                                )}
                             </span>
 
                             <span className={`${styles.priority} ${styles[task.priority]}`}>

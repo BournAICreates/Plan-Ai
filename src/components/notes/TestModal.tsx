@@ -111,23 +111,26 @@ export function TestModal({ isOpen, onClose, noteId, noteContent }: TestModalPro
                 ? "GENERATE AS MANY QUESTIONS AS POSSIBLE to fully cover the content. Do not hold back."
                 : `GENERATE EXACTLY ${questionCount} QUESTIONS. Do not generate more or fewer.`;
 
-            const prompt = `Create a comprehensive multiple-choice test based on the following text.
+            const quizSystemInstruction = "You are an expert educational testing specialist. Your goal is to create tests that are high-fidelity to the user's provided text. You avoid hallucinating external information and ensure all questions and correct answers are grounded strictly in the provided content.";
+
+            const prompt = `Create a comprehensive multiple-choice test based ONLY on the following text.
                 Return a JSON array of objects. Each object must have:
                 - "question": string
                 - "options": array of 4 strings
                 - "correctIndex": number (0-3)
-                - "explanation": string (brief explanation of why the correct answer is right)
+                - "explanation": string (brief explanation of why the correct answer is right, citing the text where possible)
                 
                 CRITICAL INSTRUCTIONS:
                 1. ${countInstruction} THIS IS THE MOST IMPORTANT RULE.
                 2. ${customInstructions ? `USER CUSTOM INSTRUCTIONS: ${customInstructions}` : ''}
-                3. If the user custom instructions conflict with rule #1 regarding the number of questions, rule #1 takes precedence.
-                4. Cover every single topic, fact, and concept in the text that could possibly be on a test (subject to the question count limit).
-                5. Do not include markdown formatting. Just raw JSON.
+                3. GROUNDING: The provided text is the EXCLUSIVE source of truth. DO NOT include information not found in the text.
+                4. PRECISION: The correct answer should be phrased as directly as possible from the source text to ensure maximum accuracy.
+                5. DISTRACTORS: Ensure the other 3 options are plausible but definitely incorrect according to the text.
+                6. No markdown formatting. Return raw JSON array only.
                 
                 Text: ${noteContent}`;
 
-            const response = await generateContent(geminiApiKeys, prompt);
+            const response = await generateContent(geminiApiKeys, prompt, quizSystemInstruction);
 
             // Handle potential markdown code blocks in response
             const cleanResponse = response.replace(/```json/g, '').replace(/```/g, '').trim();

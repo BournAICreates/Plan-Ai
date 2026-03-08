@@ -105,7 +105,7 @@
     min-width: 320px;
     background: rgba(255, 255, 255, 0.25);
     backdrop-filter: blur(var(--backdrop-blur));
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(180, 180, 190, 0.55);
     border-radius: var(--radius-lg);
     display: flex;
     flex-direction: column;
@@ -117,7 +117,7 @@
     flex: 1;
     background: rgba(255, 255, 255, 0.35);
     backdrop-filter: blur(var(--backdrop-blur));
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(180, 180, 190, 0.55);
     border-radius: var(--radius-lg);
     display: flex;
     flex-direction: column;
@@ -1138,5 +1138,602 @@
     50% {
         transform: scale(1.05);
         box-shadow: 0 25px 50px rgba(var(--color-primary-rgb), 0.25);
+    }
+}
+
+/* ============================================================
+   RESPONSIVE DESIGN — adapts to all screen sizes
+   Chromebook (1366px), small laptop (1280px), tablet (1024px)
+   ============================================================ */
+
+/* Large laptops / Chromebook HD */
+@media (max-width: 1440px) {
+    .mainContent {
+        padding: 0.75rem;
+        gap: 0.75rem;
+    }
+
+    .sidePanel {
+        min-width: 280px;
+        padding: 1.25rem;
+    }
+
+    .centerPanel {
+        padding: 1.25rem;
+    }
+
+    .fullOverlay {
+        padding: 2.5rem 3rem;
+    }
+
+    .overlayTitle {
+        font-size: 3rem;
+    }
+
+    .folderGrid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 2rem;
+    }
+
+    .folderCard {
+        padding: 2.5rem;
+    }
+
+    .studyHeaderIcon {
+        width: 80px;
+        height: 80px;
+    }
+}
+
+/* Chromebook 1366px / small laptops */
+@media (max-width: 1366px) {
+    .mainContent {
+        padding: 0.6rem;
+        gap: 0.6rem;
+    }
+
+    .sidePanel {
+        width: 22%;
+        min-width: 240px;
+        padding: 1rem;
+    }
+
+    .topHeader {
+        padding: 0.6rem 1.25rem;
+    }
+
+    .headerBtn {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+    }
+
+    .navBtn {
+        padding: 0.5rem 1.1rem;
+        font-size: 0.85rem;
+    }
+
+    .studioGrid {
+        gap: 0.6rem;
+    }
+
+    .studioCard {
+        padding: 0.8rem;
+        gap: 0.5rem;
+    }
+
+    .studioCardLabel {
+        font-size: 0.78rem;
+    }
+
+    .fullOverlay {
+        padding: 2rem 2.5rem;
+        height: 88vh;
+    }
+
+    .overlayTitle {
+        font-size: 2.75rem;
+    }
+
+    .overlayHeader {
+        margin-bottom: 2.5rem;
+    }
+
+    .overlayTab {
+        font-size: 1.1rem;
+    }
+
+    .closeOverlay {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+    }
+
+    .folderGrid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .folderCard {
+        padding: 2rem;
+        gap: 1.5rem;
+    }
+
+    .folderInfo h3 {
+        font-size: 1.25rem;
+    }
+
+    .itemCard {
+        padding: 1.25rem 2rem;
+        gap: 1.5rem;
+    }
+
+    .itemDetails h4 {
+        font-size: 1.1rem;
+    }
+
+    .flashcardWrapper {
+        height: 300px;
+    }
+
+    .flashcardFace {
+        padding: 2rem;
+        font-size: 1.5rem;
+    }
+
+    .studyHeaderIcon {
+        width: 72px;
+        height: 72px;
+        border-radius: 22px;
+        margin-bottom: 1.5rem;
+    }
+
+    .quizOption {
+        padding: 1.25rem 1.5rem;
+        font-size: 1rem;
+    }
+}
+
+/* Narrower laptops — 1280px */
+@media (max-width: 1280px) {
+    .sidePanel {
+        width: 21%;
+        min-width: 220px;
+    }
+
+    .mainContent {
+        gap: 0.5rem;
+    }
+
+    .fullOverlay {
+        width: 94%;
+        padding: 1.75rem 2rem;
+    }
+
+    .overlayTitle {
+        font-size: 2.5rem;
+    }
+
+    .overlayTabs {
+        gap: 2rem;
+        margin-top: 1rem;
+    }
+
+    .overlayTab {
+        font-size: 1rem;
+    }
+
+    .overlayHeader {
+        margin-bottom: 2rem;
+    }
+
+    .studyContainer {
+        padding: 1rem;
+    }
+
+    .studyBtn {
+        padding: 0.875rem 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    .flashcardWrapper {
+        height: 280px;
+        max-width: 520px;
+    }
+}
+
+/* 1024px — tablets / small Chromebooks */
+@media (max-width: 1024px) {
+
+    /* Collapse 3-column → 2 column (hide right Studio panel) */
+    .mainContent {
+        flex-wrap: wrap;
+        overflow-y: auto;
+    }
+
+    .sidePanel:last-of-type {
+        display: none;
+    }
+
+    /* hide Studio panel on small screens */
+    .sidePanel {
+        width: 240px;
+        min-width: 0;
+        flex-shrink: 0;
+    }
+
+    .centerPanel {
+        min-width: 300px;
+    }
+
+    .topHeader {
+        padding: 0.5rem 1rem;
+    }
+
+    .headerBtn {
+        padding: 0.45rem 0.875rem;
+        font-size: 0.78rem;
+        gap: 0.35rem;
+    }
+
+    .mainNav {
+        margin-left: 1.25rem;
+    }
+
+    .navBtn {
+        padding: 0.45rem 0.875rem;
+        font-size: 0.82rem;
+        gap: 0.5rem;
+    }
+
+    .fullOverlay {
+        width: 97%;
+        padding: 1.5rem 1.75rem;
+        height: 90vh;
+    }
+
+    .overlayTitle {
+        font-size: 2rem;
+    }
+
+    .closeOverlay {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+    }
+
+    .folderGrid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1.25rem;
+    }
+
+    .folderCard {
+        padding: 1.5rem;
+        gap: 1.25rem;
+    }
+
+    .folderInfo h3 {
+        font-size: 1.1rem;
+    }
+
+    .itemCard {
+        padding: 1rem 1.5rem;
+        gap: 1rem;
+    }
+
+    .flashcardWrapper {
+        height: 240px;
+    }
+
+    .flashcardFace {
+        padding: 1.5rem;
+        font-size: 1.25rem;
+        border-radius: 24px;
+    }
+
+    .studyControls {
+        gap: 0.75rem;
+    }
+
+    .studyBtn {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.85rem;
+    }
+
+    .quizOption {
+        padding: 1rem 1.25rem;
+        font-size: 0.95rem;
+    }
+
+    .centerPanelLarge {
+        padding: 2rem;
+    }
+
+    .mainContentCentered {
+        padding: 1.5rem;
+    }
+
+    .panelHeader {
+        margin-bottom: 1rem;
+    }
+}
+
+/* 768px - Small tablets / portrait Chromebooks */
+@media (max-width: 768px) {
+    .mainContent {
+        flex-direction: column;
+        overflow-y: auto;
+        padding: 0.5rem;
+        gap: 0.5rem;
+    }
+
+    .sidePanel,
+    .centerPanel {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .sidePanel:last-of-type {
+        display: flex;
+    }
+
+    /* restore Studio on single-column */
+    .studioGrid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .topHeader {
+        padding: 0.5rem 0.75rem;
+        gap: 0.5rem;
+    }
+
+    .mainNav {
+        margin-left: 0.75rem;
+    }
+
+    .headerRight {
+        gap: 0.5rem;
+    }
+
+    .fullOverlay {
+        padding: 1.25rem;
+        height: 95vh;
+    }
+
+    .overlayTitle {
+        font-size: 1.6rem;
+    }
+
+    .overlayTabs {
+        gap: 1.25rem;
+        margin-top: 0.75rem;
+    }
+
+    .overlayTab {
+        font-size: 0.9rem;
+    }
+
+    .flashcardWrapper {
+        height: 200px;
+    }
+
+    .flashcardFace {
+        padding: 1.25rem;
+        font-size: 1rem;
+    }
+}
+
+/* Neural Loading System */
+.neuralLoader {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    margin-bottom: 1.5rem;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.neuralIconBox {
+    width: 38px;
+    height: 38px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.neuralRing {
+    position: absolute;
+    inset: -2px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--color-primary), #6366f1, #a855f7);
+    animation: rotateNeural 2s linear infinite;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: destination-out;
+    padding: 2px;
+}
+
+.neuralIcon {
+    background: var(--color-bg-surface);
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+    animation: neuralScale 2s infinite ease-in-out;
+    z-index: 1;
+}
+
+.neuralText {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.neuralShimmer {
+    background: linear-gradient(90deg,
+            var(--color-text-muted) 0%,
+            var(--color-primary) 50%,
+            var(--color-text-muted) 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 2s linear infinite;
+}
+
+@keyframes rotateNeural {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes neuralScale {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(0.92);
+        opacity: 0.8;
+    }
+}
+
+@keyframes shimmer {
+    to {
+        background-position: 200% center;
+    }
+}
+
+/* Coffee Loading System */
+.coffeeLoader {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0.75rem 0;
+    margin-bottom: 2rem;
+    animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.coffeeIconBox {
+    width: 44px;
+    height: 44px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.coffeeCup {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    color: var(--color-primary);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.coffeeLiquid {
+    position: absolute;
+    bottom: 6px;
+    left: 7px;
+    width: 13px;
+    /* Adjusted to fit inside Lucide Coffee icon body */
+    background: linear-gradient(to top, #94a3b8, #f1f5f9);
+    border-radius: 1px 1px 3px 3px;
+    animation: coffeeFill 2.5s ease-in-out infinite;
+    box-shadow: 0 0 10px rgba(148, 163, 184, 0.4);
+}
+
+.coffeeSteam {
+    position: absolute;
+    top: 4px;
+    left: 10px;
+    font-size: 14px;
+    opacity: 0;
+    animation: coffeeSteam 2.5s ease-in-out infinite;
+}
+
+@keyframes coffeeFill {
+
+    0%,
+    100% {
+        height: 2px;
+        transform: scaleY(1);
+    }
+
+    50% {
+        height: 14px;
+        transform: scaleY(1);
+    }
+}
+
+@keyframes coffeeSteam {
+
+    0%,
+    100% {
+        transform: translateY(0) scale(0.8);
+        opacity: 0;
+    }
+
+    50% {
+        transform: translateY(-8px) scale(1.2);
+        opacity: 0.6;
+    }
+}
+
+.coffeeText {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    letter-spacing: 0.03em;
+    font-family: 'Inter', sans-serif;
+}
+
+.coffeeGlow {
+    background: linear-gradient(90deg,
+            #94a3b8 0%,
+            #ffffff 50%,
+            #94a3b8 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 2.5s linear infinite;
+}
+
+/* AI Word-by-word Fade Animation */
+.aiWord {
+    display: inline-block;
+    opacity: 0;
+    filter: blur(4px);
+    transform: translateX(-10px);
+    animation: wordFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes wordFadeIn {
+    0% {
+        opacity: 0;
+        filter: blur(4px);
+        transform: translateX(-10px);
+    }
+
+    100% {
+        opacity: 1;
+        filter: blur(0);
+        transform: translateX(0);
     }
 }
