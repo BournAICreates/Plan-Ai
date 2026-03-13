@@ -111,24 +111,66 @@
     background: rgba(148, 163, 184, 0.5);
 }
 
-.taskItem {
+.taskItemWrapper {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem 0.75rem 1rem;
+    flex-direction: column;
     background: var(--color-bg-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     transition: all var(--duration-normal) var(--ease-spring);
-    position: relative;
     overflow: hidden;
-    flex-shrink: 0;
 }
 
-.taskItem:hover {
+.taskItemWrapper:hover {
     border-color: var(--color-primary-subtle);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
+}
+
+.taskItemWrapper.expanded {
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-lg);
+}
+
+.taskItem {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    opacity: 0;
+    transform: translateX(10px);
+    transition: all var(--duration-fast);
+}
+
+.taskItemWrapper:hover .actions {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.expandBtn {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    padding: 0.5rem;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: all var(--duration-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.expandBtn:hover {
+    color: var(--color-primary);
+    background: var(--color-primary-subtle);
 }
 
 .checkbox {
@@ -237,18 +279,48 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    transform: translateX(10px);
-}
-
-.taskItem:hover .deleteBtn {
-    opacity: 1;
-    transform: translateX(0);
 }
 
 .deleteBtn:hover {
     color: var(--color-danger);
     background: var(--color-danger-bg);
+}
+
+.expandedContent {
+    padding: 0 1rem 1rem 3.5rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.descriptionArea {
+    width: 100%;
+    min-height: 80px;
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--color-text-main);
+    resize: vertical;
+    outline: none;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.descriptionArea:focus {
+    background: var(--color-bg-surface);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary-subtle);
 }
 
 .prioritySelect {

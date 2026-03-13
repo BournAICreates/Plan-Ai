@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Plus, ArrowRight, Paperclip,
-    User, FileText, Layers, Command, X, LogOut, Key, Folder,
+    User, FileText, Layers, X, LogOut, Key, Folder,
     BookOpen, Clock, Layout as LayoutIcon, PenTool, Sparkles, Sun, Moon, Calendar, Trash2, Coffee, Youtube
 } from 'lucide-react';
 import { YoutubeModal } from '../components/notes/YoutubeModal';
@@ -718,7 +718,7 @@ export function DashboardPage() {
             <header className={styles.topHeader}>
                 <div className={styles.headerLeft}>
                     <div className={styles.logoIcon}>
-                        <Command size={18} />
+                        <img src="/logo.svg" alt="Plan.ai Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     </div>
                     <span className={styles.notebookTitle} onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
                         Plan.ai

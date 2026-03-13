@@ -7,6 +7,7 @@ import { db } from '../lib/firebase';
 export interface Task {
     id: string;
     title: string;
+    description?: string;
     status: 'todo' | 'in-progress' | 'done';
     dueDate?: Date;
     priority: 'light' | 'medium' | 'urgent';
@@ -22,6 +23,7 @@ interface TaskState {
     subscribe: (uid: string) => void;
     addTask: (uid: string, task: Omit<Task, 'id'>) => Promise<string>;
     toggleStatus: (uid: string, id: string, status: Task['status']) => Promise<void>;
+    updateTask: (uid: string, id: string, updates: Partial<Task>) => Promise<void>;
     deleteTask: (uid: string, id: string) => Promise<void>;
     updateTaskOrder: (uid: string, id: string, newOrder: number) => Promise<void>;
 }
@@ -79,6 +81,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         } else {
             updates.completedAt = null;
         }
+        await updateDoc(taskRef, updates);
+    },
+
+    updateTask: async (uid, id, updates) => {
+        const taskRef = doc(db, `users/${uid}/tasks`, id);
         await updateDoc(taskRef, updates);
     },
 

@@ -27,16 +27,12 @@
 }
 
 .logoIcon {
-    width: 34px;
-    height: 34px;
-    background: linear-gradient(135deg, #94a3b8, #cbd5e1);
-    border-radius: 10px;
-    /* Squircle logo */
+    width: 42px;
+    height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    box-shadow: 0 4px 12px rgba(148, 163, 184, 0.3);
+    cursor: pointer;
 }
 
 .notebookTitle {

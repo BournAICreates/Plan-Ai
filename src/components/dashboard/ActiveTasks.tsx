@@ -1,20 +1,20 @@
 import { useState } from 'react';
 import { useTaskStore } from '../../store/useTaskStore';
 import { useAuth } from '../../contexts/AuthContext';
-import { CheckCircle2, GripVertical } from 'lucide-react';
-import { CustomSelect } from '../ui/CustomSelect';
+import { CheckCircle2, GripVertical, ChevronDown, ChevronUp, Maximize2 } from 'lucide-react';
+import { PlannerModal } from '../tasks/PlannerModal';
+import { TaskFormModal } from '../tasks/TaskFormModal';
 import styles from '../tasks/Tasks.module.css';
 
 export function ActiveTasks() {
-    const { tasks, toggleStatus, addTask, updateTaskOrder } = useTaskStore();
+    const { tasks, toggleStatus, updateTaskOrder, updateTask } = useTaskStore();
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<'school' | 'work'>('school');
-    const [showAdd, setShowAdd] = useState(false);
-    const [newTaskTitle, setNewTaskTitle] = useState('');
-    const [newTaskPriority, setNewTaskPriority] = useState<'light' | 'medium' | 'urgent'>('medium');
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [showPlanner, setShowPlanner] = useState(false);
     const [killingTaskIds, setKillingTaskIds] = useState<Set<string>>(new Set());
-    const [newlyCreatedIds, setNewlyCreatedIds] = useState<Set<string>>(new Set());
     const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+    const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
     // Filter and sort tasks (store already sorts by order desc, but we filter here)
     const activeTasks = tasks.map(t => ({ ...t, priority: t.priority || 'medium' })).filter(t => {
@@ -27,6 +27,16 @@ export function ActiveTasks() {
         }
         return true;
     });
+
+    const toggleExpand = (taskId: string) => {
+        const newExpanded = new Set(expandedTasks);
+        if (newExpanded.has(taskId)) {
+            newExpanded.delete(taskId);
+        } else {
+            newExpanded.add(taskId);
+        }
+        setExpandedTasks(newExpanded);
+    };
 
     const handleToggle = (task: any) => {
         if (!user) return;
@@ -48,48 +58,14 @@ export function ActiveTasks() {
         }, 500);
     };
 
-    const handleAddTask = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newTaskTitle.trim() || !user) return;
-
-        try {
-            const taskId = await addTask(user.uid, {
-                title: newTaskTitle,
-                status: 'todo',
-                priority: newTaskPriority,
-                category: activeTab,
-                dueDate: new Date()
-            });
-
-            if (taskId) {
-                setNewlyCreatedIds(prev => new Set(prev).add(taskId));
-                // Remove from newlyCreated after animation finishes (0.4s + staggered delays)
-                setTimeout(() => {
-                    setNewlyCreatedIds(prev => {
-                        const next = new Set(prev);
-                        next.delete(taskId);
-                        return next;
-                    });
-                }, 1500);
-            }
-
-            setNewTaskTitle('');
-            setNewTaskPriority('medium');
-            setShowAdd(false);
-        } catch (error) {
-            console.error("Failed to add task", error);
-        }
-    };
-
     // Drag and Drop Logic
     const handleDragStart = (e: React.DragEvent, taskId: string) => {
         setDraggedTaskId(taskId);
         e.dataTransfer.effectAllowed = 'move';
-        // Add a ghost class or image if needed
     };
 
     const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault(); // Necessary to allow dropping
+        e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
     };
 
@@ -102,18 +78,9 @@ export function ActiveTasks() {
 
         if (draggedIndex === -1 || targetIndex === -1) return;
 
-        // Logic: Move dragged task to target index position
-        // Since we sort DESCENDING (higher order = top), if we move to targetIndex,
-        // we want to be "between" targetIndex-1 and targetIndex (if moving up)
-        // or targetIndex and targetIndex+1 (if moving down? No, standard list logic)
-
-        // Simpler: Just put it "Above" the target task regardless of direction?
-        // Let's assume dropping ON a task puts it ABOVE that task.
-
-        // We need an order value GREATER than targetTask.order, but LESS than targetTask_Predecessor.order
         const targetOrder = activeTasks[targetIndex].order || 0;
         const prevTask = activeTasks[targetIndex - 1];
-        const prevOrder = prevTask ? (prevTask.order || 0) : targetOrder + 200000; // If top, add big buffer
+        const prevOrder = prevTask ? (prevTask.order || 0) : targetOrder + 200000;
 
         let newOrder = (targetOrder + prevOrder) / 2;
 
@@ -161,7 +128,7 @@ export function ActiveTasks() {
                         </button>
                     </div>
                     <button
-                        onClick={() => setShowAdd(!showAdd)}
+                        onClick={() => setShowAddModal(true)}
                         style={{
                             background: 'none',
                             border: 'none',
@@ -175,36 +142,33 @@ export function ActiveTasks() {
                     >
                         <span style={{ fontSize: '1.2rem', lineHeight: 0.8 }}>+</span>
                     </button>
+                    <button
+                        onClick={() => setShowPlanner(true)}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--color-text-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '4px'
+                        }}
+                        title="Enlarge View"
+                    >
+                        <Maximize2 size={16} />
+                    </button>
                 </div>
             </div>
 
-            {showAdd && (
-                <form onSubmit={handleAddTask} style={{ marginBottom: '1rem', padding: '0 4px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input
-                        type="text"
-                        value={newTaskTitle}
-                        onChange={(e) => setNewTaskTitle(e.target.value)}
-                        placeholder={`Add ${activeTab} task...`}
-                        className={styles.addInput}
-                        style={{ flex: 1 }}
-                        autoFocus
-                    />
-                    <div style={{ width: '120px' }}>
-                        <CustomSelect
-                            value={newTaskPriority}
-                            onChange={(val) => setNewTaskPriority(val as any)}
-                            options={[
-                                { value: 'light', label: 'Light', color: 'var(--color-success)' },
-                                { value: 'medium', label: 'Medium', color: 'var(--color-warning)' },
-                                { value: 'urgent', label: 'Urgent', color: 'var(--color-error)' }
-                            ]}
-                        />
-                    </div>
-                </form>
-            )}
+            <PlannerModal isOpen={showPlanner} onClose={() => setShowPlanner(false)} />
+            <TaskFormModal 
+                isOpen={showAddModal} 
+                onClose={() => setShowAddModal(false)} 
+                initialCategory={activeTab}
+            />
 
             <div className={styles.taskList} style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
-                {activeTasks.length === 0 && !showAdd && (
+                {activeTasks.length === 0 && (
                     <p className={styles.eventType} style={{ textAlign: 'center', opacity: 0.5, marginTop: '20px' }}>
                         No items in {activeTab}.
                     </p>
@@ -212,54 +176,68 @@ export function ActiveTasks() {
                 {activeTasks.map((task) => {
                     const isDone = task.status === 'done';
                     const isKilling = killingTaskIds.has(task.id);
-
+                    const isExpanded = expandedTasks.has(task.id);
 
                     return (
-                        <div
-                            key={task.id}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, task.id)}
-                            onDragOver={handleDragOver}
-                            onDrop={(e) => handleDrop(e, task.id)}
-                            className={`${styles.taskItem} ${isKilling ? styles.taskCompleting : ''}`}
+                        <div key={task.id} className={`${styles.taskItemWrapper} ${isExpanded ? styles.expanded : ''} ${isKilling ? styles.taskCompleting : ''}`}
                             style={{
                                 opacity: isDone ? 0.6 : 1,
-                                cursor: 'grab',
                                 border: draggedTaskId === task.id ? '1px dashed var(--color-primary)' : undefined,
                                 background: draggedTaskId === task.id ? 'var(--color-bg-subtle)' : undefined,
-                                padding: '0.75rem 1rem' // Override for tighter list
+                                margin: '4px 0'
                             }}
                         >
-                            <div className={styles.dragHandle}>
-                                <GripVertical size={16} />
-                            </div>
-
-                            <button
-                                className={`${styles.checkbox} ${(isDone || isKilling) ? styles.checked : ''}`}
-                                onClick={() => handleToggle(task)}
+                            <div
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, task.id)}
+                                onDragOver={handleDragOver}
+                                onDrop={(e) => handleDrop(e, task.id)}
+                                className={styles.taskItem}
+                                style={{
+                                    cursor: 'grab',
+                                    padding: '0.75rem 1rem'
+                                }}
                             >
-                                {(isDone || isKilling) && <CheckCircle2 size={16} color="white" />}
-                            </button>
+                                <div className={styles.dragHandle}>
+                                    <GripVertical size={16} />
+                                </div>
 
-                            <span className={`${styles.taskTitle} ${isDone ? styles.completed : ''}`} style={{ flex: 1, fontSize: '0.95rem' }}>
-                                {newlyCreatedIds.has(task.id) ? (
-                                    task.title.split(' ').map((word: string, i: number) => (
-                                        <span
-                                            key={i}
-                                            className={styles.taskWord}
-                                            style={{ animationDelay: `${i * 0.05}s` }}
-                                        >
-                                            {word}&nbsp;
-                                        </span>
-                                    ))
-                                ) : (
-                                    task.title
-                                )}
-                            </span>
+                                <button
+                                    className={`${styles.checkbox} ${(isDone || isKilling) ? styles.checked : ''}`}
+                                    onClick={() => handleToggle(task)}
+                                >
+                                    {(isDone || isKilling) && <CheckCircle2 size={16} color="white" />}
+                                </button>
 
-                            <span className={`${styles.priority} ${styles[task.priority]}`}>
-                                {task.priority}
-                            </span>
+                                <span className={`${styles.taskTitle} ${isDone ? styles.completed : ''}`} style={{ flex: 1, fontSize: '0.95rem' }} onClick={() => toggleExpand(task.id)}>
+                                    {task.title}
+                                </span>
+
+                                <div className={styles.actions} style={{ opacity: isExpanded ? 1 : undefined, transform: isExpanded ? 'none' : undefined }}>
+                                    <button
+                                        className={styles.expandBtn}
+                                        onClick={() => toggleExpand(task.id)}
+                                        title={isExpanded ? "Collapse" : "Expand"}
+                                    >
+                                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                    </button>
+                                </div>
+
+                                <span className={`${styles.priority} ${styles[task.priority]}`}>
+                                    {task.priority}
+                                </span>
+                            </div>
+                            {isExpanded && (
+                                <div className={styles.expandedContent} style={{ padding: '0 1rem 1rem 3rem' }}>
+                                    <textarea
+                                        className={styles.descriptionArea}
+                                        placeholder="Add description..."
+                                        style={{ minHeight: '60px', fontSize: '0.85rem' }}
+                                        value={task.description || ''}
+                                        onChange={(e) => user && updateTask(user.uid, task.id, { description: e.target.value })}
+                                    />
+                                </div>
+                            )}
                         </div>
                     );
                 })}
